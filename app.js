@@ -42,6 +42,36 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     }
 });
 
+const subsectionTitles = {
+  "4.1": "4.1 Conocimiento de la organización y su contexto",
+  "4.2": "4.2 Comprensión de las necesidades y expectativas de las partes interesadas",
+  "4.3": "4.3 Determinación del alcance del SGSV (Actividades + Productos y/o Servicios + Limitaciones)",
+  "4.4": "4.4 Sistema de gestión de la SV",
+  "5.1": "5.1 Liderazgo y compromiso",
+  "5.2": "5.2 Política de SV",
+  "5.3": "5.3 Roles, responsabilidades y autoridades en la organización",
+  "6.1": "6.1 Generalidades (Planificación)",
+  "6.2": "6.2 Acciones para tratar riesgos y oportunidades",
+  "6.3": "6.3 Factores de desempeño en SV",
+  "6.4": "6.4 Objetivos de SV y planificación para lograrlos",
+  "7.1": "7.1 Coordinación",
+  "7.2": "7.2 Recursos",
+  "7.3": "7.3 Competencia",
+  "7.4": "7.4 Toma de conciencia",
+  "7.5": "7.5 Comunicación",
+  "7.6.1": "7.6.1 Información documentada",
+  "7.6.2": "7.6.2 Creacion y actualización",
+  "7.6.3": "7.6.3 Control de la información documentada",
+  "8.1": "8.1 Planificación y control operacional",
+  "8.2": "8.2 Preparación y respuesta a las emergencias",
+  "9.1": "9.1 Seguimiento, medición, análisis y evaluación",
+  "9.2": "9.2 Investigación de accidentes de tráfico y otros incidentes de tráfico",
+  "9.3": "9.3 Auditoría interna",
+  "9.4": "9.4 Revisión por la dirección",
+  "10.1": "10.1 No conformidades y acciones correctivas",
+  "10.2": "10.2 Mejora continua"
+};
+
 function logout() {
     location.reload();
 }
@@ -79,12 +109,12 @@ function renderNav() {
 function renderSections() {
     const container = document.getElementById('evaluationSections');
     container.innerHTML = '';
-
+ 
     evaluationData.forEach((section, index) => {
         const sectionDiv = document.createElement('div');
         sectionDiv.className = `evaluation-section ${index === 0 ? 'active' : ''}`;
         sectionDiv.id = `section-${index}`;
-
+ 
         let html = `
             <div class="evaluation-header">
                 <div>
@@ -95,13 +125,23 @@ function renderSections() {
             </div>
             <div class="question-list">
         `;
-
+ 
+        let lastSubsection = '';
         section.questions.forEach((q, qIndex) => {
-            // Lógica para mostrar texto diferente en los botones si es pregunta inversa
-            const yesLabel = q.isInverse ? "Sí (Mal)" : "Sí"; 
+            // Busca prefijos detallados como 7.6.1 o 9.1 primero; si no hay, toma el general (ej: 7.6)
+            const match = q.text.match(/^(\d+\.\d+\.\d+|\d+\.\d+)/);
+            let currentPrefix = match ? match[1] : null;
+ 
+            if (currentPrefix && currentPrefix !== lastSubsection) {
+                const subsectionTitle = subsectionTitles[currentPrefix] || currentPrefix;
+                html += `<div class="subsection-title">${subsectionTitle}</div>`;
+                lastSubsection = currentPrefix;
+            }
+ 
+            // Botón de respuesta inversa
+            const yesLabel = q.isInverse ? "Sí (Mal)" : "Sí";
             const noLabel = q.isInverse ? "No (Bien)" : "No";
-            // Nota visual: En la interfaz mostramos SI/NO estándar, la lógica interna maneja el valor.
-
+ 
             html += `
                 <div class="question-item" id="q-item-${q.id}">
                     <div class="question-content">
@@ -117,9 +157,8 @@ function renderSections() {
                 </div>
             `;
         });
-
-        html += `
-            </div>
+ 
+        html += `</div>
             <div class="section-score">
                 <div class="score-circle" id="score-circle-${section.id}" style="--score: 0">
                     <span class="score-value" id="score-val-${section.id}">0%</span>
@@ -131,7 +170,7 @@ function renderSections() {
                 <span class="score-badge needs-improvement" id="score-badge-${section.id}">Pendiente</span>
             </div>
         `;
-
+ 
         sectionDiv.innerHTML = html;
         container.appendChild(sectionDiv);
     });

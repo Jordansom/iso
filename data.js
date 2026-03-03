@@ -144,8 +144,7 @@ const evaluationData = [
             { id: "ma7", text: "8.1 ¿La organización cuenta con un procedimiento de mantenimientos?" },
             { id: "ma8", text: "8.1 ¿La organización cuenta con un procedimiento de seguridad activa y pasiva de sus vehículos?" },
             { id: "ma9", text: "8.1 ¿La organización dispone de un programa de mantenimiento preventivo basado en condiciones de uso, kilometraje o recomendaciones del fabricante?" },
-            { id: "ma10", text: "8.1 ¿El proceso de mantenimiento incluye criterios para priorizar intervenciones que impactan la seguridad vial?" },
-            { id: "ma11", text: "8.1 ¿Los recursos necesarios para cumplir el plan de mantenimiento están previstos y asignados oportunamente?" },
+            {id: "ma10",text: "8.1 ¿El proceso de mantenimiento incluye criterios para priorizar intervenciones que impactan la seguridad vial (frenos, neumáticos, luces, dirección, etc.)?"},            { id: "ma11", text: "8.1 ¿Los recursos necesarios para cumplir el plan de mantenimiento están previstos y asignados oportunamente?" },
             { id: "ma12", text: "8.1 ¿Se registran todas las actividades de mantenimiento realizadas a los vehículos?" },
             // 9.1
             { id: "ma13", text: "9.1 ¿Se revisan indicadores clave del proceso de mantenimiento (cumplimiento del plan, disponibilidad de vehículos, fallas críticas, auxilios viales)?" },
@@ -163,7 +162,7 @@ const evaluationData = [
         recommendation: "Fortalecer la verificación de competencias antes de la contratación y asegurar que la capacitación sea continua y registrada.",
         questions: [
             // 7.2
-            { id: "hr1", text: "7.2 ¿La organización cuenta con los recursos necesarios (personal, presupuesto, materiales) para realizar el reclutamiento y la capacitación adecuadamente?" },
+            {id: "hr1",text: "7.2 ¿La organización cuenta con los recursos necesarios (personal, presupuesto, materiales, espacios, herramientas) para realizar el reclutamiento y la capacitación adecuadamente?"},
             { id: "hr2", text: "7.2 ¿Los recursos asignados son suficientes para asegurar la formación continua del personal que impacta la seguridad vial?" },
             { id: "hr3", text: "7.2 ¿Los recursos para capacitación (instructores, equipos, materiales) se mantienen disponibles y actualizados?" },
             // 7.3
@@ -258,7 +257,7 @@ const evaluationData = [
             { id: "em9", text: "9.1 ¿Los datos generados por la atención a siniestros son confiables, completos y están bien documentados?" },
             { id: "em10", text: "9.1 ¿Se analizan los resultados para identificar tendencias, factores recurrentes o áreas de mejora?" },
             { id: "em11", text: "9.1 ¿La información obtenida se comunica a las áreas responsables y se utiliza para fortalecer la seguridad vial?" },
-            { id: "em12", text: "9.1 ¿El proceso se evalúa periódicamente para verificar la eficacia de la respuesta ante emergencias?" },
+            { id: "em12", text: "9.1 ¿El proceso se evalúa periódicamente para verificar la eficacia de la respuesta ante emergencias y el manejo de siniestros?" },
             // 9.2
             { id: "em13", text: "9.2 ¿La organización realiza investigaciones formales de todos los accidentes e incidentes de tráfico relevantes?" },
             { id: "em14", text: "9.2 ¿Las investigaciones identifican causas raíz y factores contribuyentes de manera estructurada?" },
@@ -289,7 +288,7 @@ const evaluationData = [
             { id: "doc9", text: "7.6.3 ¿Se protege la información documentada contra pérdida, uso indebido, deterioro o acceso no autorizado?" },
             { id: "doc10", text: "7.6.3 ¿Los registros se gestionan adecuadamente en cuanto a archivo, identificación, acceso y tiempo de retención?" },
             { id: "doc11", text: "7.6.3 ¿Se asegura que documentos obsoletos sean retirados o identificados para evitar su uso?" },
-            { id: "doc12", text: "7.6.3 ¿La información documentada externa necesaria (normas, requisitos legales) está controlada y actualizada?" },
+            {id: "doc12",text: "7.6.3 ¿La información documentada externa necesaria (normas, requisitos legales, documentos de proveedores) está controlada y actualizada?"},
             { id: "doc13", text: "7.6.3 ¿El personal conoce cómo acceder y utilizar la información documentada aplicable a su proceso?" },
             { id: "doc14", text: "7.6.3 ¿La organización cuenta con una lista maestra de documentos?" }
         ]
