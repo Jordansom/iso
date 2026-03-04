@@ -1,6 +1,8 @@
 // app.js
 let currentSectionIndex = 0;
 let userAnswers = {}; // { questionId: value (1 or 0) }
+let currentUsername = '';
+let evaluationCompleted = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     // Verificar si hay fecha guardada, si no poner hoy
@@ -27,10 +29,12 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         const data = await response.json();
 
         if (data.success) {
+            currentUsername = user;
             document.getElementById('currentUser').textContent = user;
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContainer').style.display = 'block';
             initializeJsonData(); // Cargar preguntas
+            loadProgress();       // Restaurar progreso guardado
             showToast('Bienvenido al sistema ISO 39001', 'success');
         } else {
             errorMsg.textContent = data.message;
@@ -73,6 +77,9 @@ const subsectionTitles = {
 };
 
 function logout() {
+    currentUsername = '';
+    evaluationCompleted = false;
+    userAnswers = {};
     location.reload();
 }
 
@@ -82,6 +89,7 @@ function initializeJsonData() {
     renderSections();
     updateTotalCount();
     showSection(0);
+    updateSummary();
 }
 
 function updateTotalCount() {
@@ -291,10 +299,95 @@ function previousSection() {
     showSection(currentSectionIndex - 1);
 }
 
-function saveProgress() {
-    // Simulación de guardado local
-    localStorage.setItem('iso_answers', JSON.stringify(userAnswers));
-    showToast('Progreso guardado localmente', 'success');
+async function saveProgress() {
+    const companyName = document.getElementById('companyName').value || '';
+    try {
+        const response = await fetch('save_progress.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                companyName,
+                answers: userAnswers,
+                completed: evaluationCompleted
+            })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showToast('Progreso guardado en el servidor', 'success');
+        } else {
+            showToast('Error al guardar: ' + (result.message || ''), 'error');
+        }
+    } catch (err) {
+        showToast('Error de conexión al guardar progreso', 'error');
+    }
+}
+
+async function loadProgress() {
+    try {
+        const response = await fetch('load_progress.php');
+        const data = await response.json();
+        if (!data.success || !data.found) {
+            updateSummary();
+            return;
+        }
+        // Restore company name
+        if (data.companyName) {
+            document.getElementById('companyName').value = data.companyName;
+        }
+        // Restore answers
+        if (data.answers && typeof data.answers === 'object') {
+            userAnswers = data.answers;
+            // Re-apply button states for all sections
+            evaluationData.forEach(section => {
+                section.questions.forEach(q => {
+                    if (!userAnswers.hasOwnProperty(q.id)) return;
+                    const qItem = document.getElementById('q-item-' + q.id);
+                    if (!qItem) return;
+                    const buttons = qItem.querySelectorAll('.answer-btn');
+                    const storedScore = userAnswers[q.id];
+                    // Determine which button was originally clicked:
+                    // Normal: yes-btn (index 0) → score 1; no-btn (index 1) → score 0
+                    // Inverse: yes-btn (index 0) → score 0; no-btn (index 1) → score 1
+                    const isInverse = q.isInverse || false;
+                    let yesWasClicked;
+                    if (isInverse) {
+                        yesWasClicked = storedScore === 0;
+                    } else {
+                        yesWasClicked = storedScore === 1;
+                    }
+                    if (yesWasClicked) {
+                        if (buttons[0]) buttons[0].classList.add('selected-yes');
+                    } else {
+                        if (buttons[1]) buttons[1].classList.add('selected-no');
+                    }
+                });
+                updateSectionProgress(section.id);
+            });
+            updateTotalProgress();
+        }
+        // Restore completed flag
+        evaluationCompleted = !!data.completed;
+        updateSummary();
+        if (data.found) {
+            showToast('Progreso restaurado', 'info');
+        }
+    } catch (err) {
+        // Silent fail on load
+        updateSummary();
+    }
+}
+
+function getTotalQuestionCount() {
+    return evaluationData.reduce((sum, s) => sum + s.questions.length, 0);
+}
+
+function updateSummary() {
+    const answeredCount = Object.keys(userAnswers).length;
+    const completedCount = evaluationCompleted ? 1 : 0;
+    // Pending: has some answers but evaluation not yet completed
+    const pendingCount = (answeredCount > 0 && !evaluationCompleted) ? 1 : 0;
+    document.getElementById('summaryCompleted').textContent = completedCount;
+    document.getElementById('summaryPending').textContent = pendingCount;
 }
 
 // --- RESULTS & CHART ---
@@ -322,6 +415,12 @@ function calculateResults() {
 }
 
 function showResults() {
+    // Mark evaluation as completed when user views results
+    if (Object.keys(userAnswers).length === getTotalQuestionCount()) {
+        evaluationCompleted = true;
+        updateSummary();
+    }
+
     const { sectionScores, globalAverage } = calculateResults();
     
     document.getElementById('overallScoreValue').textContent = `${globalAverage}%`;
