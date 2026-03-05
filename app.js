@@ -3,6 +3,7 @@ let currentSectionIndex = 0;
 let userAnswers = {}; // { questionId: value (1 or 0) }
 let currentUsername = '';
 let evaluationCompleted = false;
+let activeRecordTimestamp = null; // timestamp of the record currently loaded; null = unsaved / new
 
 document.addEventListener('DOMContentLoaded', () => {
     // Verificar si hay fecha guardada, si no poner hoy
@@ -46,6 +47,51 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     }
 });
 
+// --- REGISTER LOGIC ---
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorMsg   = document.getElementById('registerError');
+    const successMsg = document.getElementById('registerSuccess');
+    errorMsg.style.display = 'none';
+    successMsg.style.display = 'none';
+
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const regKey   = document.getElementById('regKey').value;
+
+    try {
+        const response = await fetch('register.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, regKey })
+        });
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('registerForm').reset();
+            successMsg.textContent = 'Usuario creado exitosamente. Ya puede iniciar sesión.';
+            successMsg.style.display = 'block';
+            setTimeout(() => switchAuthTab('login'), 2000);
+        } else {
+            errorMsg.textContent = data.message;
+            errorMsg.style.display = 'block';
+        }
+    } catch (error) {
+        errorMsg.textContent = 'Error de conexión con el servidor.';
+        errorMsg.style.display = 'block';
+    }
+});
+
+function switchAuthTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('loginForm').style.display    = isLogin ? '' : 'none';
+    document.getElementById('registerForm').style.display = isLogin ? 'none' : '';
+    document.getElementById('loginError').style.display   = 'none';
+    document.getElementById('registerError').style.display  = 'none';
+    document.getElementById('registerSuccess').style.display = 'none';
+    document.getElementById('tabLogin').classList.toggle('active', isLogin);
+    document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+}
+
 const subsectionTitles = {
   "4.1": "4.1 Conocimiento de la organización y su contexto",
   "4.2": "4.2 Comprensión de las necesidades y expectativas de las partes interesadas",
@@ -81,6 +127,21 @@ function logout() {
     evaluationCompleted = false;
     userAnswers = {};
     location.reload();
+}
+
+function confirmResetProgress() {
+    if (!confirm('¿Estás seguro de que deseas reiniciar toda la evaluación? Se perderán las respuestas actuales (no las guardadas en el servidor).')) return;
+    userAnswers = {};
+    evaluationCompleted = false;
+    activeRecordTimestamp = null;
+    // Clear all button selections
+    document.querySelectorAll('.answer-btn').forEach(b => b.classList.remove('selected-yes', 'selected-no'));
+    // Reset all section progress indicators
+    evaluationData.forEach(section => updateSectionProgress(section.id));
+    updateTotalProgress();
+    updateSummary();
+    showSection(0);
+    showToast('Evaluación reiniciada', 'info');
 }
 
 // --- INITIALIZATION ---
@@ -233,7 +294,9 @@ function updateSectionProgress(sectionId) {
     const badge = document.getElementById(`badge-${sectionId}`);
     badge.textContent = `${answered}/${section.questions.length}`;
     if (answered === section.questions.length) {
-        document.querySelector(`.nav-btn[onclick*="${evaluationData.indexOf(section)}"]`).classList.add('completed');
+        const navBtns = document.querySelectorAll('.nav-btn');
+        const idx = evaluationData.indexOf(section);
+        if (navBtns[idx]) navBtns[idx].classList.add('completed');
     }
 
     // Update Section Score Visuals
@@ -308,12 +371,13 @@ async function saveProgress() {
             body: JSON.stringify({
                 companyName,
                 answers: userAnswers,
-                completed: evaluationCompleted
+                completed: evaluationCompleted,
+                replaceTimestamp: activeRecordTimestamp  // null = new save, string = update in place
             })
         });
         const result = await response.json();
         if (result.success) {
-            showToast('Progreso guardado en el servidor', 'success');
+            showToast(activeRecordTimestamp ? 'Progreso actualizado' : 'Progreso guardado', 'success');
         } else {
             showToast('Error al guardar: ' + (result.message || ''), 'error');
         }
@@ -326,55 +390,121 @@ async function loadProgress() {
     try {
         const response = await fetch('load_progress.php');
         const data = await response.json();
-        if (!data.success || !data.found) {
+        if (!data.success || !data.found || !data.records || data.records.length === 0) {
             updateSummary();
             return;
         }
-        // Restore company name
-        if (data.companyName) {
-            document.getElementById('companyName').value = data.companyName;
-        }
-        // Restore answers
-        if (data.answers && typeof data.answers === 'object') {
-            userAnswers = data.answers;
-            // Re-apply button states for all sections
-            evaluationData.forEach(section => {
-                section.questions.forEach(q => {
-                    if (!userAnswers.hasOwnProperty(q.id)) return;
-                    const qItem = document.getElementById('q-item-' + q.id);
-                    if (!qItem) return;
-                    const buttons = qItem.querySelectorAll('.answer-btn');
-                    const storedScore = userAnswers[q.id];
-                    // Determine which button was originally clicked:
-                    // Normal: yes-btn (index 0) → score 1; no-btn (index 1) → score 0
-                    // Inverse: yes-btn (index 0) → score 0; no-btn (index 1) → score 1
-                    const isInverse = q.isInverse || false;
-                    let yesWasClicked;
-                    if (isInverse) {
-                        yesWasClicked = storedScore === 0;
-                    } else {
-                        yesWasClicked = storedScore === 1;
-                    }
-                    if (yesWasClicked) {
-                        if (buttons[0]) buttons[0].classList.add('selected-yes');
-                    } else {
-                        if (buttons[1]) buttons[1].classList.add('selected-no');
-                    }
-                });
-                updateSectionProgress(section.id);
-            });
-            updateTotalProgress();
-        }
-        // Restore completed flag
-        evaluationCompleted = !!data.completed;
-        updateSummary();
-        if (data.found) {
-            showToast('Progreso restaurado', 'info');
-        }
+        // Auto-load the most recent record (index 0 = newest)
+        applyRecord(data.records[0]);
+        updateSavedListButton(data.records.length);
+        const n = data.records.length;
+        showToast(`Progreso restaurado (${n} guardado${n > 1 ? 's' : ''} disponible${n > 1 ? 's' : ''})`, 'info');
     } catch (err) {
-        // Silent fail on load
         updateSummary();
     }
+}
+
+// Restores app state from a record object
+function applyRecord(record) {
+    activeRecordTimestamp = record.timestamp || null;
+    if (record.companyName) {
+        document.getElementById('companyName').value = record.companyName;
+    }
+    if (record.answers && typeof record.answers === 'object') {
+        userAnswers = record.answers;
+        document.querySelectorAll('.answer-btn').forEach(b => b.classList.remove('selected-yes', 'selected-no'));
+        evaluationData.forEach(section => {
+            section.questions.forEach(q => {
+                if (!userAnswers.hasOwnProperty(q.id)) return;
+                const qItem = document.getElementById('q-item-' + q.id);
+                if (!qItem) return;
+                const buttons = qItem.querySelectorAll('.answer-btn');
+                const storedScore = userAnswers[q.id];
+                const isInverse = q.isInverse || false;
+                const yesWasClicked = isInverse ? storedScore === 0 : storedScore === 1;
+                if (yesWasClicked) { if (buttons[0]) buttons[0].classList.add('selected-yes'); }
+                else               { if (buttons[1]) buttons[1].classList.add('selected-no'); }
+            });
+            updateSectionProgress(section.id);
+        });
+        updateTotalProgress();
+    }
+    evaluationCompleted = !!record.completed;
+    updateSummary();
+}
+
+// Opens the modal listing all saved records for the user
+async function openSavedListModal() {
+    const modal = document.getElementById('savedListModal');
+    const listEl = document.getElementById('savedRecordsList');
+    listEl.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 24px;"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>';
+    modal.classList.add('active');
+    try {
+        const response = await fetch('load_progress.php');
+        const data = await response.json();
+        if (!data.success || !data.found || !data.records || data.records.length === 0) {
+            listEl.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 24px;">No hay registros guardados.</p>';
+            return;
+        }
+        updateSavedListButton(data.records.length);
+        window._savedRecords = data.records;
+        const total = getTotalQuestionCount();
+        listEl.innerHTML = `
+            <div style="margin-bottom:16px;display:flex;justify-content:flex-end;">
+                <button class="btn btn-secondary" onclick="newSaveFromList()" style="font-size:13px;padding:8px 16px;">
+                    <i class="fas fa-plus"></i> Nuevo Guardado
+                </button>
+            </div>
+        ` + data.records.map((rec, i) => {
+            const answered = Object.keys(rec.answers || {}).length;
+            const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+            const ts = rec.timestamp || '(sin fecha)';
+            const company = rec.companyName || '—';
+            const badge = rec.completed
+                ? `<span style="background:rgba(0,200,150,0.15);color:var(--success);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">Completado</span>`
+                : `<span style="background:rgba(255,184,0,0.15);color:var(--warning);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">Pendiente</span>`;
+            return `
+                <div class="saved-record-item">
+                    <div class="saved-record-info">
+                        <div class="saved-record-company">${company}</div>
+                        <div class="saved-record-meta">
+                            <span><i class="fas fa-clock"></i> ${ts}</span>
+                            <span><i class="fas fa-tasks"></i> ${answered}/${total} &nbsp;(${pct}%)</span>
+                            ${badge}
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadRecordFromList(${i})" style="padding:8px 18px;font-size:13px;flex-shrink:0;">
+                        <i class="fas fa-upload"></i> Cargar
+                    </button>
+                </div>`;
+        }).join('');
+    } catch (err) {
+        listEl.innerHTML = '<p style="color: var(--danger); text-align: center; padding: 24px;">Error al obtener los guardados.</p>';
+    }
+}
+
+function loadRecordFromList(index) {
+    const records = window._savedRecords;
+    if (!records || !records[index]) return;
+    applyRecord(records[index]);
+    closeSavedListModal();
+    showToast('Registro cargado correctamente', 'success');
+}
+
+function closeSavedListModal() {
+    document.getElementById('savedListModal').classList.remove('active');
+}
+
+// Detaches from the current loaded record so the next save creates a new entry
+function newSaveFromList() {
+    activeRecordTimestamp = null;
+    closeSavedListModal();
+    showToast('El próximo guardado creará un registro nuevo', 'info');
+}
+
+function updateSavedListButton(count) {
+    const btn = document.getElementById('savedListBtn');
+    if (btn) btn.innerHTML = `<i class="fas fa-folder-open"></i> Ver Guardados (${count})`;
 }
 
 function getTotalQuestionCount() {
