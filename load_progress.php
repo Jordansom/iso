@@ -28,8 +28,10 @@ while (($row = fgetcsv($fp, 0, ',', '"', '\\')) !== false) {
 }
 fclose($fp);
 
-// Parse all data rows – handles both old format (companyName,answers,completed)
-// and new format (timestamp,companyName,answers,completed)
+// Parse all data rows – supports:
+// old: companyName,answers,completed
+// old with timestamp: timestamp,companyName,answers,completed
+// new: timestamp,companyName,evaluatorName,companyContact,answers,completed
 $header = $rows[0] ?? [];
 $hasTimestamp = ($header[0] ?? '') === 'timestamp';
 
@@ -37,20 +39,38 @@ $records = [];
 for ($i = 1; $i < count($rows); $i++) {
     $r = $rows[$i];
     if ($hasTimestamp) {
-        if (count($r) < 3 || $r[0] === 'timestamp') continue;
-        $rec = [
-            'timestamp'   => $r[0],
-            'companyName' => $r[1],
-            'answers'     => json_decode($r[2] ?? '{}', true) ?: [],
-            'completed'   => isset($r[3]) ? (int)$r[3] : 0,
-        ];
+        if ($r[0] === 'timestamp') continue;
+        if (count($r) >= 6) {
+            $rec = [
+                'timestamp'      => $r[0],
+                'companyName'    => $r[1],
+                'evaluatorName'  => $r[2] ?? '',
+                'companyContact' => $r[3] ?? '',
+                'answers'        => json_decode($r[4] ?? '{}', true) ?: [],
+                'completed'      => isset($r[5]) ? (int)$r[5] : 0,
+            ];
+        } elseif (count($r) >= 4) {
+            // Backward compatibility with old timestamp format
+            $rec = [
+                'timestamp'      => $r[0],
+                'companyName'    => $r[1],
+                'evaluatorName'  => '',
+                'companyContact' => '',
+                'answers'        => json_decode($r[2] ?? '{}', true) ?: [],
+                'completed'      => isset($r[3]) ? (int)$r[3] : 0,
+            ];
+        } else {
+            continue;
+        }
     } else {
         if (count($r) < 2 || $r[0] === 'companyName') continue;
         $rec = [
-            'timestamp'   => null,
-            'companyName' => $r[0],
-            'answers'     => json_decode($r[1] ?? '{}', true) ?: [],
-            'completed'   => isset($r[2]) ? (int)$r[2] : 0,
+            'timestamp'      => null,
+            'companyName'    => $r[0],
+            'evaluatorName'  => '',
+            'companyContact' => '',
+            'answers'        => json_decode($r[1] ?? '{}', true) ?: [],
+            'completed'      => isset($r[2]) ? (int)$r[2] : 0,
         ];
     }
     $rec['answeredCount'] = count($rec['answers']);

@@ -17,6 +17,8 @@ if (!is_array($input)) {
 
 $username        = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $_SESSION['username']);
 $companyName     = $input['companyName'] ?? '';
+$evaluatorName   = $input['evaluatorName'] ?? '';
+$companyContact  = $input['companyContact'] ?? '';
 $answers         = $input['answers'] ?? [];
 $completed       = isset($input['completed']) ? (int)(bool)$input['completed'] : 0;
 $replaceTimestamp = $input['replaceTimestamp'] ?? null; // null = new save, string = update existing
@@ -28,8 +30,10 @@ if (!is_dir($dir)) {
 
 $file = $dir . '/' . $username . '.csv';
 
-// Read existing records (handles both old format: companyName,answers,completed
-// and new format: timestamp,companyName,answers,completed)
+// Read existing records (supports:
+// old: companyName,answers,completed
+// old with timestamp: timestamp,companyName,answers,completed
+// new: timestamp,companyName,evaluatorName,companyContact,answers,completed)
 $existingRows = [];
 if (file_exists($file)) {
     $rfp = fopen($file, 'r');
@@ -42,11 +46,17 @@ if (file_exists($file)) {
             for ($i = 1; $i < count($allRows); $i++) {
                 $r = $allRows[$i];
                 if ($hasTimestamp) {
-                    if (count($r) >= 4 && $r[0] !== 'timestamp') $existingRows[] = $r;
+                    if ($r[0] === 'timestamp') continue;
+                    if (count($r) >= 6) {
+                        $existingRows[] = [$r[0], $r[1], $r[2], $r[3], $r[4], $r[5]];
+                    } elseif (count($r) >= 4) {
+                        // Migrate old timestamp format by inserting missing fields
+                        $existingRows[] = [$r[0], $r[1], '', '', $r[2] ?? '{}', $r[3] ?? '0'];
+                    }
                 } else {
                     // Migrate old format: prepend placeholder timestamp
                     if (count($r) >= 2 && $r[0] !== 'companyName') {
-                        $existingRows[] = ['(sin fecha)', $r[0], $r[1] ?? '{}', $r[2] ?? '0'];
+                        $existingRows[] = ['(sin fecha)', $r[0], '', '', $r[1] ?? '{}', $r[2] ?? '0'];
                     }
                 }
             }
@@ -59,7 +69,7 @@ if ($replaceTimestamp !== null) {
     $updated = false;
     foreach ($existingRows as &$row) {
         if ($row[0] === $replaceTimestamp) {
-            $row = [$replaceTimestamp, $companyName, json_encode($answers), $completed];
+            $row = [$replaceTimestamp, $companyName, $evaluatorName, $companyContact, json_encode($answers), $completed];
             $updated = true;
             break;
         }
@@ -67,11 +77,11 @@ if ($replaceTimestamp !== null) {
     unset($row);
     if (!$updated) {
         // Timestamp not found (edge case), just append
-        $existingRows[] = [$replaceTimestamp, $companyName, json_encode($answers), $completed];
+        $existingRows[] = [$replaceTimestamp, $companyName, $evaluatorName, $companyContact, json_encode($answers), $completed];
     }
 } else {
     // New save: append with current timestamp
-    $existingRows[] = [date('Y-m-d H:i:s'), $companyName, json_encode($answers), $completed];
+    $existingRows[] = [date('Y-m-d H:i:s'), $companyName, $evaluatorName, $companyContact, json_encode($answers), $completed];
 }
 if (count($existingRows) > 20) {
     $existingRows = array_slice($existingRows, -20);
@@ -84,7 +94,7 @@ if ($fp === false) {
     exit;
 }
 flock($fp, LOCK_EX);
-fputcsv($fp, ['timestamp', 'companyName', 'answers', 'completed'], ",", '"', "\\");
+fputcsv($fp, ['timestamp', 'companyName', 'evaluatorName', 'companyContact', 'answers', 'completed'], ",", '"', "\\");
 foreach ($existingRows as $row) {
     fputcsv($fp, $row, ",", '"', "\\");
 }
