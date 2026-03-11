@@ -1,6 +1,34 @@
 // app.js
 let currentSectionIndex = 0;
 let userAnswers = {}; // { questionId: value (1 or 0) }
+let currentUsername = '';
+let evaluationCompleted = false;
+let activeRecordTimestamp = null; // timestamp of the record currently loaded; null = unsaved / new
+
+// --- LOCAL STORAGE HELPERS (replaces PHP backend for GitHub Pages) ---
+const _USERS_KEY = 'iso39001_users';
+const _PROGRESS_PREFIX = 'iso39001_progress_';
+
+async function _hashPassword(password) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function _getUsers() {
+    return JSON.parse(localStorage.getItem(_USERS_KEY) || '[]');
+}
+
+function _saveUsers(users) {
+    localStorage.setItem(_USERS_KEY, JSON.stringify(users));
+}
+
+function _getProgressRecords(username) {
+    return JSON.parse(localStorage.getItem(_PROGRESS_PREFIX + username.toLowerCase()) || '[]');
+}
+
+function _saveProgressRecords(username, records) {
+    localStorage.setItem(_PROGRESS_PREFIX + username.toLowerCase(), JSON.stringify(records));
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     // Verificar si hay fecha guardada, si no poner hoy
@@ -13,34 +41,87 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- LOGIN LOGIC ---
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const user = document.getElementById('username').value;
+    const user = document.getElementById('username').value.trim();
     const pass = document.getElementById('password').value;
     const errorMsg = document.getElementById('loginError');
 
     try {
-        const response = await fetch('login.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: user, password: pass })
-        });
-        
-        const data = await response.json();
-
-        if (data.success) {
-            document.getElementById('currentUser').textContent = user;
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'block';
-            initializeJsonData(); // Cargar preguntas
-            showToast('Bienvenido al sistema ISO 39001', 'success');
-        } else {
-            errorMsg.textContent = data.message;
+        const users = _getUsers();
+        const found = users.find(u => u.username.toLowerCase() === user.toLowerCase());
+        if (!found || await _hashPassword(pass) !== found.password_hash) {
+            errorMsg.textContent = 'Usuario o contraseña incorrectos.';
             errorMsg.style.display = 'block';
+            return;
         }
+        currentUsername = found.username;
+        document.getElementById('currentUser').textContent = found.username;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+        initializeJsonData(); // Cargar preguntas
+        loadProgress();       // Restaurar progreso guardado
+        showToast('Bienvenido al sistema ISO 39001', 'success');
     } catch (error) {
-        errorMsg.textContent = "Error de conexión con el servidor.";
+        errorMsg.textContent = 'Error al iniciar sesión.';
         errorMsg.style.display = 'block';
     }
 });
+
+// --- REGISTER LOGIC ---
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorMsg   = document.getElementById('registerError');
+    const successMsg = document.getElementById('registerSuccess');
+    errorMsg.style.display = 'none';
+    successMsg.style.display = 'none';
+
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const regKey   = document.getElementById('regKey').value;
+
+    try {
+        if (regKey !== 'Prevencion2026!') {
+            errorMsg.textContent = 'Clave de registro incorrecta.';
+            errorMsg.style.display = 'block';
+            return;
+        }
+        if (!/^[a-zA-Z0-9_\-]{3,32}$/.test(username)) {
+            errorMsg.textContent = 'Usuario inválido (3-32 caracteres, solo letras, números, _ o -).';
+            errorMsg.style.display = 'block';
+            return;
+        }
+        if (password.length < 6) {
+            errorMsg.textContent = 'La contraseña debe tener al menos 6 caracteres.';
+            errorMsg.style.display = 'block';
+            return;
+        }
+        const users = _getUsers();
+        if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+            errorMsg.textContent = 'El usuario ya existe.';
+            errorMsg.style.display = 'block';
+            return;
+        }
+        users.push({ username, password_hash: await _hashPassword(password) });
+        _saveUsers(users);
+        document.getElementById('registerForm').reset();
+        successMsg.textContent = 'Usuario creado exitosamente. Ya puede iniciar sesión.';
+        successMsg.style.display = 'block';
+        setTimeout(() => switchAuthTab('login'), 2000);
+    } catch (error) {
+        errorMsg.textContent = 'Error al registrar usuario.';
+        errorMsg.style.display = 'block';
+    }
+});
+
+function switchAuthTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('loginForm').style.display    = isLogin ? '' : 'none';
+    document.getElementById('registerForm').style.display = isLogin ? 'none' : '';
+    document.getElementById('loginError').style.display   = 'none';
+    document.getElementById('registerError').style.display  = 'none';
+    document.getElementById('registerSuccess').style.display = 'none';
+    document.getElementById('tabLogin').classList.toggle('active', isLogin);
+    document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+}
 
 const subsectionTitles = {
   "4.1": "4.1 Conocimiento de la organización y su contexto",
@@ -73,7 +154,25 @@ const subsectionTitles = {
 };
 
 function logout() {
+    currentUsername = '';
+    evaluationCompleted = false;
+    userAnswers = {};
     location.reload();
+}
+
+function confirmResetProgress() {
+    if (!confirm('¿Estás seguro de que deseas reiniciar toda la evaluación? Se perderán las respuestas actuales (no las guardadas).')) return;
+    userAnswers = {};
+    evaluationCompleted = false;
+    activeRecordTimestamp = null;
+    // Clear all button selections
+    document.querySelectorAll('.answer-btn').forEach(b => b.classList.remove('selected-yes', 'selected-no'));
+    // Reset all section progress indicators
+    evaluationData.forEach(section => updateSectionProgress(section.id));
+    updateTotalProgress();
+    updateSummary();
+    showSection(0);
+    showToast('Evaluación reiniciada', 'info');
 }
 
 // --- INITIALIZATION ---
@@ -82,6 +181,7 @@ function initializeJsonData() {
     renderSections();
     updateTotalCount();
     showSection(0);
+    updateSummary();
 }
 
 function updateTotalCount() {
@@ -182,6 +282,10 @@ function selectAnswer(sectionId, questionId, value, isInverse, btnElement) {
     // Normal: Yes(1) = Good, No(0) = Bad.
     // Inverse: Yes(1) = Bad, No(0) = Good.
     
+    // We store the "Score Value". 
+    // If Normal: value passed is 1 for Yes. Score = 1.
+    // If Inverse: value passed is 1 for Yes. Score = 0.
+    
     let scoreValue = 0;
     if (isInverse) {
         scoreValue = value === 1 ? 0 : 1; 
@@ -221,7 +325,9 @@ function updateSectionProgress(sectionId) {
     const badge = document.getElementById(`badge-${sectionId}`);
     badge.textContent = `${answered}/${section.questions.length}`;
     if (answered === section.questions.length) {
-        document.querySelector(`.nav-btn[onclick*="${evaluationData.indexOf(section)}"]`).classList.add('completed');
+        const navBtns = document.querySelectorAll('.nav-btn');
+        const idx = evaluationData.indexOf(section);
+        if (navBtns[idx]) navBtns[idx].classList.add('completed');
     }
 
     // Update Section Score Visuals
@@ -287,10 +393,160 @@ function previousSection() {
     showSection(currentSectionIndex - 1);
 }
 
-function saveProgress() {
-    // Simulación de guardado local
-    localStorage.setItem('iso_answers', JSON.stringify(userAnswers));
-    showToast('Progreso guardado localmente', 'success');
+async function saveProgress() {
+    const companyName = document.getElementById('companyName').value || '';
+    const evaluatorName = document.getElementById('evaluatorName').value || '';
+    const companyContact = document.getElementById('companyContact').value || '';
+    try {
+        let records = _getProgressRecords(currentUsername);
+        const isUpdate = activeRecordTimestamp !== null;
+        if (isUpdate) {
+            const idx = records.findIndex(r => r.timestamp === activeRecordTimestamp);
+            const updated = { timestamp: activeRecordTimestamp, companyName, evaluatorName, companyContact, answers: userAnswers, completed: evaluationCompleted ? 1 : 0 };
+            if (idx >= 0) records[idx] = updated;
+            else records.push(updated);
+        } else {
+            activeRecordTimestamp = new Date().toLocaleString('sv').replace('T', ' ');
+            records.push({ timestamp: activeRecordTimestamp, companyName, evaluatorName, companyContact, answers: userAnswers, completed: evaluationCompleted ? 1 : 0 });
+        }
+        if (records.length > 20) records = records.slice(-20);
+        _saveProgressRecords(currentUsername, records);
+        showToast(isUpdate ? 'Progreso actualizado' : 'Progreso guardado', 'success');
+    } catch (err) {
+        showToast('Error al guardar progreso', 'error');
+    }
+}
+
+async function loadProgress() {
+    try {
+        const records = [..._getProgressRecords(currentUsername)].reverse(); // newest first
+        if (!records || records.length === 0) {
+            updateSummary();
+            return;
+        }
+        // Auto-load the most recent record (index 0 = newest)
+        applyRecord(records[0]);
+        updateSavedListButton(records.length);
+        const n = records.length;
+        showToast(`Progreso restaurado (${n} guardado${n > 1 ? 's' : ''} disponible${n > 1 ? 's' : ''})`, 'info');
+    } catch (err) {
+        updateSummary();
+    }
+}
+
+// Restores app state from a record object
+function applyRecord(record) {
+    activeRecordTimestamp = record.timestamp || null;
+    document.getElementById('companyName').value = record.companyName || '';
+    document.getElementById('evaluatorName').value = record.evaluatorName || '';
+    document.getElementById('companyContact').value = record.companyContact || '';
+    if (record.answers && typeof record.answers === 'object') {
+        userAnswers = record.answers;
+        document.querySelectorAll('.answer-btn').forEach(b => b.classList.remove('selected-yes', 'selected-no'));
+        evaluationData.forEach(section => {
+            section.questions.forEach(q => {
+                if (!userAnswers.hasOwnProperty(q.id)) return;
+                const qItem = document.getElementById('q-item-' + q.id);
+                if (!qItem) return;
+                const buttons = qItem.querySelectorAll('.answer-btn');
+                const storedScore = userAnswers[q.id];
+                const isInverse = q.isInverse || false;
+                const yesWasClicked = isInverse ? storedScore === 0 : storedScore === 1;
+                if (yesWasClicked) { if (buttons[0]) buttons[0].classList.add('selected-yes'); }
+                else               { if (buttons[1]) buttons[1].classList.add('selected-no'); }
+            });
+            updateSectionProgress(section.id);
+        });
+        updateTotalProgress();
+    }
+    evaluationCompleted = !!record.completed;
+    updateSummary();
+}
+
+// Opens the modal listing all saved records for the user
+async function openSavedListModal() {
+    const modal = document.getElementById('savedListModal');
+    const listEl = document.getElementById('savedRecordsList');
+    listEl.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 24px;"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>';
+    modal.classList.add('active');
+    try {
+        const records = [..._getProgressRecords(currentUsername)].reverse(); // newest first
+        if (!records || records.length === 0) {
+            listEl.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 24px;">No hay registros guardados.</p>';
+            return;
+        }
+        updateSavedListButton(records.length);
+        window._savedRecords = records;
+        const total = getTotalQuestionCount();
+        listEl.innerHTML = `
+            <div style="margin-bottom:16px;display:flex;justify-content:flex-end;">
+                <button class="btn btn-secondary" onclick="newSaveFromList()" style="font-size:13px;padding:8px 16px;">
+                    <i class="fas fa-plus"></i> Nuevo Guardado
+                </button>
+            </div>
+        ` + records.map((rec, i) => {
+            const answered = Object.keys(rec.answers || {}).length;
+            const pct = total > 0 ? Math.round((answered / total) * 100) : 0;
+            const ts = rec.timestamp || '(sin fecha)';
+            const company = rec.companyName || '—';
+            const badge = rec.completed
+                ? `<span style="background:rgba(0,200,150,0.15);color:var(--success);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">Completado</span>`
+                : `<span style="background:rgba(255,184,0,0.15);color:var(--warning);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;">Pendiente</span>`;
+            return `
+                <div class="saved-record-item">
+                    <div class="saved-record-info">
+                        <div class="saved-record-company">${company}</div>
+                        <div class="saved-record-meta">
+                            <span><i class="fas fa-clock"></i> ${ts}</span>
+                            <span><i class="fas fa-tasks"></i> ${answered}/${total} &nbsp;(${pct}%)</span>
+                            ${badge}
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="loadRecordFromList(${i})" style="padding:8px 18px;font-size:13px;flex-shrink:0;">
+                        <i class="fas fa-upload"></i> Cargar
+                    </button>
+                </div>`;
+        }).join('');
+    } catch (err) {
+        listEl.innerHTML = '<p style="color: var(--danger); text-align: center; padding: 24px;">Error al obtener los guardados.</p>';
+    }
+}
+
+function loadRecordFromList(index) {
+    const records = window._savedRecords;
+    if (!records || !records[index]) return;
+    applyRecord(records[index]);
+    closeSavedListModal();
+    showToast('Registro cargado correctamente', 'success');
+}
+
+function closeSavedListModal() {
+    document.getElementById('savedListModal').classList.remove('active');
+}
+
+// Detaches from the current loaded record so the next save creates a new entry
+function newSaveFromList() {
+    activeRecordTimestamp = null;
+    closeSavedListModal();
+    showToast('El próximo guardado creará un registro nuevo', 'info');
+}
+
+function updateSavedListButton(count) {
+    const btn = document.getElementById('savedListBtn');
+    if (btn) btn.innerHTML = `<i class="fas fa-folder-open"></i> Ver Guardados (${count})`;
+}
+
+function getTotalQuestionCount() {
+    return evaluationData.reduce((sum, s) => sum + s.questions.length, 0);
+}
+
+function updateSummary() {
+    const answeredCount = Object.keys(userAnswers).length;
+    const completedCount = evaluationCompleted ? 1 : 0;
+    // Pending: has some answers but evaluation not yet completed
+    const pendingCount = (answeredCount > 0 && !evaluationCompleted) ? 1 : 0;
+    document.getElementById('summaryCompleted').textContent = completedCount;
+    document.getElementById('summaryPending').textContent = pendingCount;
 }
 
 // --- RESULTS & CHART ---
@@ -318,6 +574,12 @@ function calculateResults() {
 }
 
 function showResults() {
+    // Mark evaluation as completed when user views results
+    if (Object.keys(userAnswers).length === getTotalQuestionCount()) {
+        evaluationCompleted = true;
+        updateSummary();
+    }
+
     const { sectionScores, globalAverage } = calculateResults();
     
     document.getElementById('overallScoreValue').textContent = `${globalAverage}%`;
@@ -370,42 +632,87 @@ function renderChart(dataValues) {
         radarChartInstance.destroy();
     }
 
+    // Compute clause-based scores (clauses 4–10) matching the PDF table
+    const _clauseOrder  = ['4','5','6','7','8','9','10'];
+    const _clauseChartLabels = [
+        '4. Contexto de la organización',
+        '5. Liderazgo',
+        '6. Planificación',
+        '7. Apoyo',
+        '8. Operación',
+        '9. Evaluación del desempeño',
+        '10. Mejora'
+    ];
+    const _cMap = {}, _csMap = {};
+    evaluationData.forEach(sec => {
+        sec.questions.forEach(q => {
+            const m = q.text.match(/^(\d+)\./);
+            if (m) {
+                const n = m[1];
+                _cMap[n]  = (_cMap[n]  || 0) + 1;
+                _csMap[n] = (_csMap[n] || 0) + (userAnswers[q.id] || 0);
+            }
+        });
+    });
+    const clauseScores = _clauseOrder.map(n => {
+        const total = _cMap[n] || 0;
+        return total > 0 ? Math.round((_csMap[n] || 0) / total * 100) : 0;
+    });
+
     radarChartInstance = new Chart(ctx, {
-        type: 'radar',
+        type: 'line',
         data: {
-            labels: evaluationData.map(s => s.title),
+            labels: _clauseChartLabels,
             datasets: [{
                 label: 'Cumplimiento %',
-                data: dataValues,
-                backgroundColor: 'rgba(206, 0, 155, 0.2)',
-                borderColor: '#ce009b',
-                pointBackgroundColor: '#f000b5',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: '#ce009b',
-                borderWidth: 2
+                data: clauseScores,
+                backgroundColor: 'rgba(0, 150, 174, 0.20)',
+                borderColor: '#0096AE',
+                pointBackgroundColor: '#0096AE',
+                pointBorderColor: '#941B80',
+                pointHoverBackgroundColor: '#941B80',
+                pointHoverBorderColor: '#0096AE',
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                borderWidth: 2.5,
+                fill: true,
+                tension: 0
             }]
         },
         options: {
+            maintainAspectRatio: false,
+            layout: { padding: { top: 16, bottom: 55, left: 8, right: 8 } },
             scales: {
-                r: {
-                    angleLines: { color: 'rgba(255,255,255,0.1)' },
-                    grid: { color: 'rgba(255,255,255,0.1)' },
-                    pointLabels: {
-                        color: '#a0a0b0',
-                        font: { size: 10, family: 'Outfit' }
-                    },
+                x: {
+                    grid: { color: 'rgba(0,0,0,0.07)' },
                     ticks: {
-                        backdropColor: 'transparent',
-                        color: 'rgba(255,255,255,0.5)',
-                        stepSize: 20
-                    },
-                    suggestedMin: 0,
-                    suggestedMax: 100
+                        color: '#222222',
+                        font: { size: 10, family: 'Outfit', weight: '500' },
+                        maxRotation: 45,
+                        minRotation: 30,
+                        autoSkip: false
+                    }
+                },
+                y: {
+                    min: 0,
+                    max: 100,
+                    grid: { color: 'rgba(0,0,0,0.08)' },
+                    ticks: {
+                        color: '#222222',
+                        font: { size: 10, family: 'Outfit' },
+                        stepSize: 20,
+                        callback: v => v + '%'
+                    }
                 }
             },
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: items => _clauseChartLabels[items[0].dataIndex] || '',
+                        label: item => ` Cumplimiento: ${item.raw}%`
+                    }
+                }
             }
         }
     });
@@ -422,23 +729,42 @@ async function generatePDF() {
     const company = document.getElementById('companyName').value || "Empresa No Definida";
     const { sectionScores, globalAverage } = calculateResults();
     
-    // Colors
-    const primaryColor = [206, 0, 155]; // #ce009b
-    const darkColor = [20, 20, 30];
+    // Colors – Qualitas brand
+    const primaryColor = [148, 28, 128];   // Morado Qualitas #941B80
+    const aquaColor    = [0, 150, 173];    // Aqua Qualitas #0096AE
+
+    // Load logo
+    let logoData = null;
+    try {
+        const logoEl = new Image();
+        logoEl.src = 'logo.png';
+        await new Promise(resolve => { logoEl.onload = resolve; logoEl.onerror = resolve; });
+        if (logoEl.complete && logoEl.naturalWidth > 0) {
+            const lc = document.createElement('canvas');
+            lc.width = logoEl.naturalWidth;
+            lc.height = logoEl.naturalHeight;
+            lc.getContext('2d').drawImage(logoEl, 0, 0);
+            logoData = lc.toDataURL('image/png');
+        }
+    } catch(e) {}
 
     // Header
     doc.setFillColor(...primaryColor);
     doc.rect(0, 0, 210, 40, 'F');
-    
+
+    if (logoData) {
+        doc.addImage(logoData, 'PNG', 5, 4, 28, 32);
+    }
+
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
+    doc.setFontSize(19);
     doc.setFont('helvetica', 'bold');
-    doc.text("Informe de Pre-Evaluación ISO 39001", 105, 18, { align: 'center' });
-    
-    doc.setFontSize(14);
+    doc.text("Informe de Pre-Evaluación ISO 39001", 125, 17, { align: 'center' });
+
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(company, 105, 28, { align: 'center' });
-    
+    doc.text(company, 125, 28, { align: 'center' });
+
     doc.setTextColor(50, 50, 50);
     doc.setFontSize(10);
     doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 15, 50);
@@ -448,36 +774,118 @@ async function generatePDF() {
     doc.setFontSize(14);
     doc.setTextColor(...primaryColor);
     doc.text("Resumen de Cumplimiento", 15, 70);
-    
+
     doc.setDrawColor(200, 200, 200);
     doc.line(15, 72, 195, 72);
 
+    // Puntuación Global con color según rango
+    const _scoreBoxColor = globalAverage >= 90 ? [135, 206, 250] :
+                           globalAverage >= 85 ? [144, 238, 144] :
+                           globalAverage >= 80 ? [255, 255, 153] : [255, 182, 193];
+    doc.setFillColor(..._scoreBoxColor);
+    doc.roundedRect(15, 76, 100, 10, 2, 2, 'F');
     doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Puntuación Global: ${globalAverage}%`, 15, 82);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`Puntuación Global: ${globalAverage}%`, 20, 83);
 
     // Insert Chart Image
     const canvas = document.getElementById('radarChart');
     const chartImg = canvas.toDataURL('image/png', 1.0);
-    doc.addImage(chartImg, 'PNG', 55, 90, 100, 100);
+    doc.addImage(chartImg, 'PNG', 25, 90, 160, 80);
 
-    // Section Breakdown (Table)
-    const tableData = evaluationData.map((section, i) => {
-        return [section.title, `${sectionScores[i]}%`];
+    // ── Criteria / Scoring Reference Tables (page 1, after chart) ───────────
+    const _clauseLabels = {
+        '4':  '4. Contexto de la organización',
+        '5':  '5. Liderazgo',
+        '6':  '6. Planificación',
+        '7':  '7. Apoyo',
+        '8':  '8. Operación',
+        '9':  '9. Evaluación del desempeño',
+        '10': '10. Mejora'
+    };
+    const _clauseMap = {};
+    const _clauseScoreMap = {};
+    evaluationData.forEach(sec => {
+        sec.questions.forEach(q => {
+            const m = q.text.match(/^(\d+)\./);
+            if (m) {
+                _clauseMap[m[1]] = (_clauseMap[m[1]] || 0) + 1;
+                if (userAnswers[q.id] === 1) {
+                    _clauseScoreMap[m[1]] = (_clauseScoreMap[m[1]] || 0) + 1;
+                }
+            }
+        });
+    });
+    const _clauseRows = Object.keys(_clauseLabels).map(n => {
+        const total = _clauseMap[n] || 0;
+        const result = _clauseScoreMap[n] || 0;
+        const pct = total > 0 ? Math.round((result / total) * 100) : 0;
+        return [_clauseLabels[n], result, `${pct}%`];
     });
 
+    // Left table: Rangos de gestión (legend / criteria)
     doc.autoTable({
-        startY: 200,
-        head: [['Sección', 'Cumplimiento']],
-        body: tableData,
+        startY: 174,
+        margin: { left: 14, right: 120 },
+        head: [['Rangos de gestión', 'Ponderación']],
+        body: [
+            ['Sobresaliente', '90% al 100%'],
+            ['Bueno',          '85% al 89%'],
+            ['Aceptable',      '80% al 84%'],
+            ['Necesita mejorar', '< 80%']
+        ],
         theme: 'grid',
-        headStyles: { fillColor: primaryColor },
-        styles: { fontSize: 10 }
+        headStyles: { fillColor: primaryColor, fontSize: 8, halign: 'center' },
+        styles: { fontSize: 8 },
+        columnStyles: { 1: { halign: 'center' } },
+        didParseCell: data => {
+            if (data.section === 'body' && data.column.index === 0) {
+                const bg = [
+                    [135, 206, 250],
+                    [144, 238, 144],
+                    [255, 255, 153],
+                    [255, 182, 193]
+                ];
+                data.cell.styles.fillColor = bg[data.row.index];
+                data.cell.styles.textColor = [0, 0, 0];
+            }
+        }
+    });
+
+    // Right table: ISO clause — Resultado + % Cumplimiento (colored)
+    doc.autoTable({
+        startY: 174,
+        margin: { left: 105, right: 10 },
+        head: [
+            [{ content: 'ISO 39001:2012 Sistema de gestión de seguridad vial', colSpan: 3, styles: { halign: 'center' } }],
+            ['Cláusula', 'Resultado', '% Cumplimiento']
+        ],
+        body: _clauseRows,
+        theme: 'grid',
+        headStyles: { fillColor: primaryColor, fontSize: 8, halign: 'center' },
+        styles: { fontSize: 8 },
+        columnStyles: {
+            0: { cellWidth: 58 },
+            1: { cellWidth: 14, halign: 'center' },
+            2: { cellWidth: 23, halign: 'center' }
+        },
+        didParseCell: data => {
+            if (data.section === 'body' && data.column.index === 2) {
+                const pct = parseInt(data.cell.raw);
+                let bg;
+                if (pct >= 90)      bg = [135, 206, 250];
+                else if (pct >= 85) bg = [144, 238, 144];
+                else if (pct >= 80) bg = [255, 255, 153];
+                else                bg = [255, 182, 193];
+                data.cell.styles.fillColor = bg;
+                data.cell.styles.textColor = [0, 0, 0];
+            }
+        }
     });
 
     // PAGE 2: Recomendaciones
     doc.addPage();
-    
+
     doc.setFontSize(16);
     doc.setTextColor(...primaryColor);
     doc.text("Plan de Acción y Recomendaciones", 15, 20);
