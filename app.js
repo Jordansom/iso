@@ -5,29 +5,33 @@ let currentUsername = '';
 let evaluationCompleted = false;
 let activeRecordTimestamp = null; // timestamp of the record currently loaded; null = unsaved / new
 
-// --- LOCAL STORAGE HELPERS (replaces PHP backend for GitHub Pages) ---
-const _USERS_KEY = 'iso39001_users';
-const _PROGRESS_PREFIX = 'iso39001_progress_';
+// --- FIREBASE / FIRESTORE HELPERS ---
 
 async function _hashPassword(password) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function _getUsers() {
-    return JSON.parse(localStorage.getItem(_USERS_KEY) || '[]');
+// Returns the user document data or null if not found
+async function _getFireUser(username) {
+    const doc = await db.collection('users').doc(username.toLowerCase()).get();
+    return doc.exists ? doc.data() : null;
 }
 
-function _saveUsers(users) {
-    localStorage.setItem(_USERS_KEY, JSON.stringify(users));
+// Creates a new user document
+async function _createFireUser(username, password_hash) {
+    await db.collection('users').doc(username.toLowerCase()).set({ username, password_hash });
 }
 
-function _getProgressRecords(username) {
-    return JSON.parse(localStorage.getItem(_PROGRESS_PREFIX + username.toLowerCase()) || '[]');
+// Returns the progress records array for a user
+async function _getProgressRecords(username) {
+    const doc = await db.collection('progress').doc(username.toLowerCase()).get();
+    return doc.exists ? (doc.data().records || []) : [];
 }
 
-function _saveProgressRecords(username, records) {
-    localStorage.setItem(_PROGRESS_PREFIX + username.toLowerCase(), JSON.stringify(records));
+// Saves the full records array for a user
+async function _saveProgressRecords(username, records) {
+    await db.collection('progress').doc(username.toLowerCase()).set({ records });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -46,8 +50,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const errorMsg = document.getElementById('loginError');
 
     try {
-        const users = _getUsers();
-        const found = users.find(u => u.username.toLowerCase() === user.toLowerCase());
+        const found = await _getFireUser(user);
         if (!found || await _hashPassword(pass) !== found.password_hash) {
             errorMsg.textContent = 'Usuario o contraseña incorrectos.';
             errorMsg.style.display = 'block';
@@ -94,14 +97,13 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
             errorMsg.style.display = 'block';
             return;
         }
-        const users = _getUsers();
-        if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+        const existingUser = await _getFireUser(username);
+        if (existingUser) {
             errorMsg.textContent = 'El usuario ya existe.';
             errorMsg.style.display = 'block';
             return;
         }
-        users.push({ username, password_hash: await _hashPassword(password) });
-        _saveUsers(users);
+        await _createFireUser(username, await _hashPassword(password));
         document.getElementById('registerForm').reset();
         successMsg.textContent = 'Usuario creado exitosamente. Ya puede iniciar sesión.';
         successMsg.style.display = 'block';
@@ -398,7 +400,7 @@ async function saveProgress() {
     const evaluatorName = document.getElementById('evaluatorName').value || '';
     const companyContact = document.getElementById('companyContact').value || '';
     try {
-        let records = _getProgressRecords(currentUsername);
+        let records = await _getProgressRecords(currentUsername);
         const isUpdate = activeRecordTimestamp !== null;
         if (isUpdate) {
             const idx = records.findIndex(r => r.timestamp === activeRecordTimestamp);
@@ -410,7 +412,7 @@ async function saveProgress() {
             records.push({ timestamp: activeRecordTimestamp, companyName, evaluatorName, companyContact, answers: userAnswers, completed: evaluationCompleted ? 1 : 0 });
         }
         if (records.length > 20) records = records.slice(-20);
-        _saveProgressRecords(currentUsername, records);
+        await _saveProgressRecords(currentUsername, records);
         showToast(isUpdate ? 'Progreso actualizado' : 'Progreso guardado', 'success');
     } catch (err) {
         showToast('Error al guardar progreso', 'error');
@@ -419,7 +421,7 @@ async function saveProgress() {
 
 async function loadProgress() {
     try {
-        const records = [..._getProgressRecords(currentUsername)].reverse(); // newest first
+        const records = [...(await _getProgressRecords(currentUsername))].reverse(); // newest first
         if (!records || records.length === 0) {
             updateSummary();
             return;
@@ -470,7 +472,7 @@ async function openSavedListModal() {
     listEl.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 24px;"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>';
     modal.classList.add('active');
     try {
-        const records = [..._getProgressRecords(currentUsername)].reverse(); // newest first
+        const records = [...(await _getProgressRecords(currentUsername))].reverse(); // newest first
         if (!records || records.length === 0) {
             listEl.innerHTML = '<p style="color: var(--text-secondary); text-align: center; padding: 24px;">No hay registros guardados.</p>';
             return;
