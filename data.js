@@ -1,296 +1,188 @@
-// data.js - VERSIÓN COMPLETA (173 PREGUNTAS)
+// data.js - ISO 39001:2012 Preguntas de Auditoría (bloques por cláusula)
 
 // Recomendación general que aparecerá siempre en el PDF
 const generalRecommendation = "Para cumplir con ISO 39001:2012, la clave es alinear la operación real con un sistema ordenado. Se ha detectado que la organización debe trabajar en cerrar las brechas documentales y operativas detectadas en esta evaluación para garantizar la seguridad vial y la conformidad con la norma.";
 
 const evaluationData = [
+    // ── CLÁUSULA 4 ──────────────────────────────────────────────────────────
     {
-        id: "context",
-        title: "Contexto y Dirección",
+        id: "clause4",
+        title: "4. Contexto de la organización",
         icon: "fa-sitemap",
-        description: "Cláusulas 4, 5, 6.3, 6.4, 7.1 y 9.4 (Contexto, Liderazgo, Planeación).",
-        recommendation: "Reforzar el conocimiento del contexto por parte de la alta dirección y asegurar que la política de seguridad vial baje a todos los niveles operativos.",
+        description: "Cláusula 4: Contexto de la organización, partes interesadas, alcance y sistema de gestión.",
         questions: [
             // 4.1
-            { id: "c1", text: "4.1 ¿La alta dirección conoce el contexto interno y externo que influye en el desempeño del sistema de seguridad vial?" },
-            { id: "c2", text: "4.1 ¿Se identifican factores relevantes (operativos, legales, tecnológicos, sociales) que impactan la seguridad vial?" },
+            { id: "q4_1_1", clause: "4", subsection: "4.1", text: "¿Cómo ha determinado la organización las cuestiones externas e internas que afectan su capacidad para lograr los resultados del SGSV?", evidence: "Análisis de contexto documentado (FODA, PESTEL, análisis de riesgo vial por ruta)" },
+            { id: "q4_1_2", clause: "4", subsection: "4.1", text: "¿Cuál es el rol identificado de la empresa en el sistema vial? ¿Está documentado?", evidence: "Documento de alcance, descripción de operaciones y tipo de rutas operadas" },
+            { id: "q4_1_3", clause: "4", subsection: "4.1", text: "¿Cómo se identificaron los procesos, actividades y funciones que pueden afectar la seguridad vial?", evidence: "Mapa de procesos con indicación de los que tienen impacto en SV" },
+            { id: "q4_1_4", clause: "4", subsection: "4.1", text: "¿Está definida la secuencia e interacción de esos procesos con impacto en SV?", evidence: "Diagrama o matriz de interacción de procesos (despacho, conducción, carga, mantenimiento)" },
             // 4.2
-            { id: "c3", text: "4.2 ¿La organización identifica a sus partes interesadas relevantes en seguridad vial?" },
-            { id: "c4", text: "4.2 ¿Se conocen y revisan periódicamente las necesidades y expectativas de dichas partes interesadas?" },
+            { id: "q4_2_1", clause: "4", subsection: "4.2", text: "¿Qué partes interesadas relevantes al SGSV han sido identificadas?", evidence: "Registro o matriz de partes interesadas (clientes, conductores, autoridades, aseguradoras, comunidades)" },
+            { id: "q4_2_2", clause: "4", subsection: "4.2", text: "¿Cómo se determinaron los requisitos de cada parte interesada en materia de SV?", evidence: "Matriz de requisitos legales y compromisos contraídos, contratos con clientes que incluyan SV" },
+            { id: "q4_2_3", clause: "4", subsection: "4.2", text: "¿Se han identificado y registrado los requisitos legales aplicables en materia de SV (reglamentos de tránsito, normas de peso y dimensiones, licencias de conducir comerciales, etc.)?", evidence: "Listado de requisitos legales vigente, con fecha de actualización" },
             // 4.3
-            { id: "c5", text: "4.3 ¿El alcance del sistema de gestión de seguridad vial está claramente definido y documentado?" },
-            { id: "c6", text: "4.3 ¿La dirección revisa que el alcance incluya procesos, ubicaciones y actividades relevantes?" },
+            { id: "q4_3_1", clause: "4", subsection: "4.3", text: "¿Cómo se determinó el alcance del sistema de gestión de SV? ¿Qué operaciones, rutas y unidades incluye?", evidence: "Documento de alcance firmado y disponible" },
+            { id: "q4_3_2", clause: "4", subsection: "4.3", text: "¿Los resultados previstos del SGSV incluyen explícitamente la reducción de muertes y heridas graves?", evidence: "Declaración de alcance con resultados esperados del sistema" },
+            { id: "q4_3_3", clause: "4", subsection: "4.3", text: "¿El alcance está disponible como información documentada?", evidence: "Documento de alcance en el sistema de gestión documental" },
             // 4.4
-            { id: "c7", text: "4.4 ¿La organización identifica cuáles son sus procesos y la interacción entre ellos?" },
-            { id: "c8", text: "4.4 ¿Se asignan recursos suficientes para operar el sistema de manera efectiva?" },
-            { id: "c9", text: "4.4 ¿La organización cuenta con fichas de procesos?" },
-            // 5.1
-            { id: "c10", text: "5.1 ¿La dirección demuestra compromiso visible con la mejora del desempeño en seguridad vial?" },
-            { id: "c11", text: "5.1 ¿La dirección participa activamente en decisiones estratégicas relacionadas con el sistema de gestión?" },
-            { id: "c12", text: "5.1 ¿Se asegura la integración de los requisitos del SGSV en los procesos de negocio?" },
-            // 5.2
-            { id: "c13", text: "5.2 ¿La política de seguridad vial está establecida, documentada y comunicada internamente?" },
-            { id: "c14", text: "5.2 ¿La política es coherente con los objetivos y compromisos de la organización?" },
-            { id: "c15", text: "5.2 ¿El personal comprende la política y su aplicación en el trabajo?" },
-            // 5.3
-            { id: "c16", text: "5.3 ¿La organización cuenta con un organigrama general?" },
-            { id: "c17", text: "5.3 ¿Están claramente definidos y documentados los roles y responsabilidades en materia de seguridad vial?" },
-            { id: "c18", text: "5.3 ¿El personal conoce sus responsabilidades específicas dentro del SGSV?" },
-            { id: "c19", text: "5.3 ¿La dirección asigna autoridades suficientes para la toma de decisiones relacionadas con la seguridad vial?" },
-            // 6.3
-            { id: "c20", text: "6.3 ¿La organización mide el número de muertos y heridos graves por accidentes viales?" },
-            { id: "c21", text: "6.3 ¿La dirección identifica y considera factores clave que afectan el desempeño en seguridad vial?" },
-            { id: "c22", text: "6.3 ¿Estos factores se reflejan en la planificación, objetivos y controles operativos?" },
-            // 6.4
-            { id: "c23", text: "6.4 ¿La dirección establece objetivos claros, medibles y coherentes con la política de seguridad vial?" },
-            { id: "c24", text: "6.4 ¿Existen planes definidos para cumplir los objetivos, incluyendo recursos, responsables y plazos?" },
-            { id: "c25", text: "6.4 ¿Los resultados de los objetivos se revisan periódicamente?" },
-            // 7.1
-            { id: "c26", text: "7.1 ¿La dirección promueve la coordinación entre áreas que intervienen en la seguridad vial?" },
-            { id: "c27", text: "7.1 ¿Existe comunicación efectiva entre los distintos procesos clave del sistema?" },
-            // 9.4
-            { id: "c28", text: "9.4 ¿La alta dirección revisa el desempeño del SGSV en intervalos planificados?" },
-            { id: "c29", text: "9.4 ¿La revisión incluye resultados de auditorías, desempeño operativo, incidentes y cumplimiento de objetivos?" },
-            { id: "c30", text: "9.4 ¿Se toman decisiones y acciones que impulsen la mejora continua del sistema?" },
-            { id: "c31", text: "9.4 ¿La revisión deja evidencia documentada de análisis, conclusiones y compromisos?" }
+            { id: "q4_4_1", clause: "4", subsection: "4.4", text: "¿La organización ha establecido, implementado, mantiene y mejora continuamente un SGSV con sus procesos e interacciones?", evidence: "Manual del SGSV o descripción del sistema con mapa de procesos e interacciones" },
         ]
     },
+
+    // ── CLÁUSULA 5 ──────────────────────────────────────────────────────────
     {
-        id: "logistics",
-        title: "Logística e Inspección",
-        icon: "fa-truck-fast",
-        description: "Cláusulas 6.1, 6.2, 6.3, 8.1 y 9.1 (Gestión Operativa).",
-        recommendation: "Formalizar los controles de fatiga (descansos) y asegurar que las inspecciones pre-viaje sean un filtro real para detener unidades no aptas.",
+        id: "clause5",
+        title: "5. Liderazgo",
+        icon: "fa-users-gear",
+        description: "Cláusula 5: Liderazgo y compromiso, política de SV, roles y responsabilidades.",
+        questions: [
+            // 5.1
+            { id: "q5_1_1", clause: "5", subsection: "5.1", text: "¿Cómo demuestra la alta dirección su liderazgo y compromiso activo con el SGSV? Solicite ejemplos concretos.", evidence: "Actas de reunión de dirección con temas de SV, comunicados firmados, visitas documentadas a operaciones" },
+            { id: "q5_1_2", clause: "5", subsection: "5.1", text: "¿La política y los objetivos de SV son compatibles con la dirección estratégica de la empresa?", evidence: "Plan estratégico o planeación anual con alineación a objetivos de SV" },
+            { id: "q5_1_3", clause: "5", subsection: "5.1", text: "¿Se han asegurado recursos suficientes para el SGSV? ¿Cómo se aprueba el presupuesto de SV?", evidence: "Presupuesto aprobado para SV, registros de inversiones en capacitación, tecnología y mantenimiento" },
+            { id: "q5_1_4", clause: "5", subsection: "5.1", text: "¿La alta dirección ha adoptado formalmente la eliminación de muertes y heridas graves como objetivo a largo plazo?", evidence: "Acta o declaración formal de la dirección, política de SV con esta visión" },
+            { id: "q5_1_5", clause: "5", subsection: "5.1", text: "¿La dirección trabaja en colaboración con partes interesadas externas (autoridades, clientes, proveedores) para contribuir a un sistema vial seguro?", evidence: "Convenios, actas de reuniones con autoridades, participación en gremios o programas de SV" },
+            { id: "q5_1_6", clause: "5", subsection: "5.1", text: "¿Cómo comunica la alta dirección la importancia del cumplimiento legal en materia de SV al personal?", evidence: "Comunicados internos, registros de pláticas de inducción, reuniones de inicio de turno" },
+            // 5.2
+            { id: "q5_2_1", clause: "5", subsection: "5.2", text: "¿Existe una política de SV formalmente aprobada por la alta dirección? ¿Está firmada y fechada?", evidence: "Política de SV con firma del Director General, fecha de emisión y próxima revisión" },
+            { id: "q5_2_2", clause: "5", subsection: "5.2", text: "¿La política incluye el compromiso de cumplir los requisitos legales aplicables y de mejora continua del SGSV?", evidence: "Revisión del contenido de la política contra los requisitos de la norma (incisos a-d de §5.2)" },
+            { id: "q5_2_3", clause: "5", subsection: "5.2", text: "¿Cómo se comunica la política a todo el personal? ¿Tienen acceso a ella los conductores?", evidence: "Acuse de recibo o firmas de conocimiento, evidencia de publicación en instalaciones y unidades" },
+            { id: "q5_2_4", clause: "5", subsection: "5.2", text: "¿La política está disponible para partes interesadas externas?", evidence: "Política publicada en sitio web, disponible para clientes o autoridades bajo solicitud" },
+            // 5.3
+            { id: "q5_3_1", clause: "5", subsection: "5.3", text: "¿Están definidos y comunicados los roles y responsabilidades en materia de SV dentro de la organización?", evidence: "Organigrama con responsabilidades de SV, perfiles de puesto actualizados" },
+            { id: "q5_3_2", clause: "5", subsection: "5.3", text: "¿Se ha designado formalmente un responsable del SGSV con autoridad suficiente? ¿Cuál es su nivel jerárquico?", evidence: "Nombramiento formal del representante del SGSV, descripción de sus funciones y autoridad" },
+            { id: "q5_3_3", clause: "5", subsection: "5.3", text: "¿El responsable del SGSV reporta a la alta dirección sobre el desempeño del sistema e incluye recomendaciones de mejora?", evidence: "Informes periódicos del responsable a la dirección, presentaciones en reuniones de revisión" },
+        ]
+    },
+
+    // ── CLÁUSULA 6 ──────────────────────────────────────────────────────────
+    {
+        id: "clause6",
+        title: "6. Planificación",
+        icon: "fa-chart-gantt",
+        description: "Cláusula 6: Generalidades, riesgos y oportunidades, factores de desempeño y objetivos de SV.",
         questions: [
             // 6.1
-            { id: "l1", text: "6.1 ¿La organización ha planificado el proceso logístico e inspecciones considerando los requisitos y objetivos del sistema de seguridad vial?" },
-            { id: "l2", text: "6.1 ¿Las actividades de logística e inspección están claramente definidas, documentadas y comunicadas?" },
-            { id: "l3", text: "6.1 ¿La planificación considera recursos, responsabilidades y tiempos para asegurar una operación segura?" },
+            { id: "q6_1_1", clause: "6", subsection: "6.1", text: "¿La organización cuenta con un proceso documentado para revisar su desempeño actual en SV?", evidence: "Reporte de desempeño en SV con estadísticas de siniestralidad, km recorridos, frecuencia de incidentes" },
+            { id: "q6_1_2", clause: "6", subsection: "6.1", text: "¿Cómo se cuantifica el desempeño actual en SV? ¿Qué indicadores se utilizan?", evidence: "Dashboard o tablero de indicadores SV con datos históricos" },
             // 6.2
-            { id: "l4", text: "6.2 ¿La organización ha identificado riesgos y oportunidades asociados a la operación logística y las inspecciones vehiculares?" },
-            { id: "l5", text: "6.2 ¿Existen controles o acciones implementadas para reducir riesgos críticos durante la operación?" },
-            { id: "l6", text: "6.2 ¿El personal conoce los riesgos principales de la operación y las acciones para mitigarlos?" },
-            // 6.3 Operativo
-            { id: "l7", text: "6.3 ¿La organización cuenta con un inventario de los tipos de vehículos con los que trabajan?" },
-            { id: "l8", text: "6.3 ¿La organización considera la renovación de su flotilla de unidades (al menos de 5 años atrás)?" },
-            { id: "l9", text: "6.3 ¿La organización exige el uso de la bitácora de servicio?" },
-            { id: "l10", text: "6.3 ¿La organización cuenta con un programa de descansos para sus operadores?" },
-            { id: "l11", text: "6.3 ¿La organización cuenta con un programa aleatorio de pruebas de antidoping y/o alcoholímetro?" },
-            { id: "l12", text: "6.3 ¿La organización cuenta con un médico 24/7 para la atención y seguimiento de sus operadores?" },
-            { id: "l13", text: "6.3 ¿El proceso considera factores clave de desempeño en seguridad vial (estado del vehículo, ruta, conductor)?" },
-            { id: "l14", text: "6.3 ¿Estos factores se integran en las inspecciones previas y en la planificación logística?" },
-            { id: "l15", text: "6.3 ¿La organización usa estos factores para orientar mejoras en la operación?" },
-            { id: "l16", text: "6.3 ¿La organización cuenta con un procedimiento sobre la retirada de vehículos y conductores no aptos para la red vial?" },
-            // 8.1
-            { id: "l17", text: "8.1 ¿Las inspecciones previas a la operación se realizan conforme a procedimientos establecidos?" },
-            { id: "l18", text: "8.1 ¿La planificación logística contempla rutas, horarios, condiciones de viaje y restricciones de seguridad vial?" },
-            { id: "l19", text: "8.1 ¿Los vehículos se retiran de operación cuando no cumplen condiciones seguras?" },
-            { id: "l20", text: "8.1 ¿El personal operativo conoce y aplica los lineamientos de control operacional?" },
-            { id: "l21", text: "8.1 ¿La ejecución logística se monitorea para detectar desviaciones en ruta, velocidad o condiciones operativas?" },
-            // 9.1
-            { id: "l22", text: "9.1 ¿La organización realiza seguimiento sistemático a los resultados de las inspecciones y la operación logística?" },
-            { id: "l23", text: "9.1 ¿Se miden indicadores relevantes del proceso (desviaciones operativas, fallas detectadas, cumplimiento de inspecciones)?" },
-            { id: "l24", text: "9.1 ¿Los datos recolectados son fiables y se registran adecuadamente?" },
-            { id: "l25", text: "9.1 ¿Se analizan tendencias para identificar áreas de mejora en logística e inspección?" },
-            { id: "l26", text: "9.1 ¿Los resultados del seguimiento se comunican a las áreas responsables y se usan para mejorar la seguridad vial?" },
-            { id: "l27", text: "9.1 ¿El proceso se evalúa periódicamente para verificar su eficacia y alineación con los objetivos de seguridad vial?" }
+            { id: "q6_2_1", clause: "6", subsection: "6.2", text: "¿Se ha realizado un análisis de riesgos y oportunidades de SV considerando el contexto y los requisitos de las partes interesadas?", evidence: "Matriz de riesgos y oportunidades de SV (ej. rutas nocturnas, sobrecargas, fatiga, conducción distraída)" },
+            { id: "q6_2_2", clause: "6", subsection: "6.2", text: "¿Cómo se planificaron las acciones para tratar los riesgos identificados? ¿Quién es el responsable de cada acción?", evidence: "Plan de acción con responsables, fechas y criterios de evaluación de eficacia" },
+            { id: "q6_2_3", clause: "6", subsection: "6.2", text: "¿Se evalúa la eficacia de las acciones implementadas para tratar riesgos? Muestre un ejemplo.", evidence: "Registro de seguimiento de acciones con evidencia de cierre y verificación de eficacia" },
+            // 6.3
+            { id: "q6_3_1", clause: "6", subsection: "6.3", text: "¿Cuáles factores de desempeño en SV ha seleccionado la organización? ¿Cómo se justificó esa selección?", evidence: "Documento de selección y justificación de factores de desempeño SV, alineados al contexto de transporte de carga" },
+            { id: "q6_3_2", clause: "6", subsection: "6.3", text: "¿Cómo se controla y monitorea la velocidad de conducción? ¿Existen límites internos más estrictos que los legales?", evidence: "Registros de telemetría/GPS, política interna de velocidades, reportes de excesos de velocidad" },
+            { id: "q6_3_3", clause: "6", subsection: "6.3", text: "¿Qué mecanismos existen para detectar y gestionar la fatiga, el alcohol y las drogas en conductores?", evidence: "Procedimiento de pruebas de alcoholemia y fatiga, registros de pruebas aplicadas, resultados" },
+            { id: "q6_3_4", clause: "6", subsection: "6.3", text: "¿Cómo se garantiza la seguridad de los vehículos antes de cada viaje?", evidence: "Listas de verificación pre-viaje firmadas, registros de mantenimiento preventivo y correctivo" },
+            { id: "q6_3_5", clause: "6", subsection: "6.3", text: "¿Cómo se gestiona el aseguramiento de la carga y la estiba? ¿Existe un procedimiento?", evidence: "Procedimiento de carga y estiba, listas de verificación de estiba firmadas por operador y supervisor" },
+            { id: "q6_3_6", clause: "6", subsection: "6.3", text: "¿Cómo se planifican los viajes de manera segura (rutas, tiempos, descansos, conductor asignado)?", evidence: "Hojas de ruta aprobadas, registros de planificación de viaje, política de horas de conducción y descanso" },
+            { id: "q6_3_7", clause: "6", subsection: "6.3", text: "¿Se verifica que todos los conductores cuentan con la licencia adecuada al tipo de vehículo que operan? ¿Con qué frecuencia?", evidence: "Expediente de conductores con copia de licencias vigentes, registro de verificaciones periódicas" },
+            { id: "q6_3_8", clause: "6", subsection: "6.3", text: "¿Existe un procedimiento para retirar de la operación a conductores o vehículos no aptos?", evidence: "Procedimiento documentado de inhabilitación temporal/permanente, registros de aplicación" },
+            { id: "q6_3_9", clause: "6", subsection: "6.3", text: "¿Están definidos los elementos y criterios específicos para cada factor de desempeño seleccionado?", evidence: "Tabla de factores con elementos y criterios medibles documentada y actualizada" },
+            // 6.4
+            { id: "q6_4_1", clause: "6", subsection: "6.4", text: "¿Existen objetivos de SV establecidos en las funciones y niveles pertinentes de la organización?", evidence: "Objetivos de SV documentados, medibles, con responsable asignado y plazo definido" },
+            { id: "q6_4_2", clause: "6", subsection: "6.4", text: "¿Los objetivos de SV son coherentes con la política y tienen en cuenta los requisitos aplicables?", evidence: "Matriz de coherencia entre política, riesgos, factores de desempeño y objetivos de SV" },
+            { id: "q6_4_3", clause: "6", subsection: "6.4", text: "¿Cómo se le da seguimiento al logro de los objetivos de SV? ¿Con qué frecuencia se revisan?", evidence: "Reportes periódicos de seguimiento a objetivos, actas de revisión con tendencias" },
+            { id: "q6_4_4", clause: "6", subsection: "6.4", text: "¿Los planes de acción para lograr los objetivos especifican qué, quién, con qué recursos, cuándo y cómo se evaluarán los resultados?", evidence: "Planes de acción documentados con los cinco elementos requeridos por la norma" },
         ]
     },
+
+    // ── CLÁUSULA 7 ──────────────────────────────────────────────────────────
     {
-        id: "monitoring",
-        title: "Monitoreo",
-        icon: "fa-desktop",
-        description: "Cláusulas 8.1, 8.2 y 9.1 (Control Telemático).",
-        recommendation: "Asegurar que el monitoreo sea en tiempo real y que existan protocolos claros de escalamiento ante alertas de emergencia.",
+        id: "clause7",
+        title: "7. Soporte",
+        icon: "fa-hand-holding-hand",
+        description: "Cláusula 7: Coordinación, recursos, competencia, toma de conciencia, comunicación e información documentada.",
         questions: [
-            // 8.1
-            { id: "mo1", text: "8.1 ¿La organización ha definido qué aspectos operativos deben ser monitoreados para asegurar la seguridad vial?" },
-            { id: "mo2", text: "8.1 ¿El monitoreo operativo se realiza conforme a procedimientos o planes establecidos?" },
-            { id: "mo3", text: "8.1 ¿El personal encargado del monitoreo conoce sus responsabilidades y criterios de control?" },
-            { id: "mo4", text: "8.1 ¿Se cuenta con herramientas adecuadas para realizar el monitoreo (GPS, reportes, sistemas, listas de verificación)?" },
-            { id: "mo5", text: "8.1 ¿El monitoreo permite identificar oportunamente desviaciones que puedan afectar la seguridad vial?" },
-            // 8.2
-            { id: "mo6", text: "8.2 ¿El proceso de monitoreo está diseñado para detectar señales que puedan indicar una posible emergencia vial?" },
-            { id: "mo7", text: "8.2 ¿El personal de monitoreo sabe cómo actuar y a quién notificar cuando se identifica una situación que puede convertirse en emergencia?" },
-            { id: "mo8", text: "8.2 ¿Los sistemas de monitoreo permiten una detección inmediata o en tiempo real de eventos críticos?" },
-            { id: "mo9", text: "8.2 ¿Los hallazgos del monitoreo relacionados con emergencias se registran y comunican adecuadamente?" },
-            { id: "mo10", text: "8.2 ¿La información generada por el monitoreo se usa para mejorar los procedimientos de preparación y respuesta a emergencias?" },
-            // 9.1
-            { id: "mo11", text: "9.1 ¿La organización realiza seguimiento sistemático de los datos generados por el monitoreo (cumplimiento de rutas, desvíos, velocidad, incidentes)?" },
-            { id: "mo12", text: "9.1 ¿Existen indicadores definidos para medir el desempeño del proceso de monitoreo?" },
-            { id: "mo13", text: "9.1 ¿Los datos registrados son confiables y se gestionan de manera adecuada?" },
-            { id: "mo14", text: "9.1 ¿Se analizan los resultados del monitoreo para identificar tendencias o problemas recurrentes?" },
-            { id: "mo15", text: "9.1 ¿Los resultados del seguimiento y análisis se utilizan para tomar decisiones y fortalecer el control operacional?" },
-            { id: "mo16", text: "9.1 ¿Las áreas responsables reciben oportunamente la información derivada del análisis del monitoreo?" },
-            { id: "mo17", text: "9.1 ¿El proceso de monitoreo se evalúa periódicamente para verificar su eficacia y relevancia?" }
-        ]
-    },
-    {
-        id: "maintenance",
-        title: "Mantenimiento",
-        icon: "fa-wrench",
-        description: "Cláusulas 7.2, 8.1 y 9.1 (Gestión de Flota).",
-        recommendation: "Garantizar recursos suficientes para mantenimiento preventivo y asegurar que la falta de presupuesto no comprometa la seguridad activa de las unidades.",
-        questions: [
+            // 7.1
+            { id: "q7_1_1", clause: "7", subsection: "7.1", text: "¿Cómo se coordina la organización internamente (operaciones, mantenimiento, RRHH, despacho) para alcanzar los objetivos de SV?", evidence: "Actas de reuniones interdepartamentales de SV, roles de coordinación definidos" },
+            { id: "q7_1_2", clause: "7", subsection: "7.1", text: "¿Existe coordinación externa con partes interesadas clave como autoridades de tránsito, clientes o talleres?", evidence: "Evidencia de reuniones, convenios o comunicaciones con partes externas relacionadas a SV" },
             // 7.2
-            { id: "ma1", text: "7.2 ¿La organización ha determinado los recursos necesarios para asegurar que las actividades de mantenimiento apoyen la seguridad vial?" },
-            { id: "ma2", text: "7.2 ¿Los recursos asignados al proceso (personal, herramientas, equipos, instalaciones, presupuesto) son suficientes para cumplir con las actividades programadas?" },
-            // PREGUNTA INVERSA (La respuesta ideal es NO)
-            { id: "ma3", text: "7.2 ¿Existen limitaciones de recursos que afecten la ejecución del mantenimiento preventivo o correctivo?", isInverse: true },
-            { id: "ma4", text: "7.2 ¿Las instalaciones donde se realiza el mantenimiento cumplen con condiciones adecuadas de seguridad, orden y funcionalidad?" },
-            { id: "ma5", text: "7.2 ¿Las herramientas y equipos de diagnóstico están disponibles, en buen estado y calibrados cuando aplica?" },
-            { id: "ma6", text: "7.2 ¿Existe un control para garantizar que los equipos de mantenimiento estén operativos y no representen riesgos?" },
-            // 8.1
-            { id: "ma7", text: "8.1 ¿La organización cuenta con un procedimiento de mantenimientos?" },
-            { id: "ma8", text: "8.1 ¿La organización cuenta con un procedimiento de seguridad activa y pasiva de sus vehículos?" },
-            { id: "ma9", text: "8.1 ¿La organización dispone de un programa de mantenimiento preventivo basado en condiciones de uso, kilometraje o recomendaciones del fabricante?" },
-            {id: "ma10",text: "8.1 ¿El proceso de mantenimiento incluye criterios para priorizar intervenciones que impactan la seguridad vial (frenos, neumáticos, luces, dirección, etc.)?"},            { id: "ma11", text: "8.1 ¿Los recursos necesarios para cumplir el plan de mantenimiento están previstos y asignados oportunamente?" },
-            { id: "ma12", text: "8.1 ¿Se registran todas las actividades de mantenimiento realizadas a los vehículos?" },
-            // 9.1
-            { id: "ma13", text: "9.1 ¿Se revisan indicadores clave del proceso de mantenimiento (cumplimiento del plan, disponibilidad de vehículos, fallas críticas, auxilios viales)?" },
-            { id: "ma14", text: "9.1 ¿La organización analiza fallas recurrentes para determinar si se requieren más recursos o ajustes al plan de mantenimiento?" },
-            { id: "ma15", text: "9.1 ¿La organización evalúa periódicamente la eficiencia del uso de recursos destinados al mantenimiento?" },
-            { id: "ma16", text: "9.1 ¿Se han implementado acciones de mejora cuando se detectan deficiencias en la disponibilidad o calidad de los recursos?" },
-            { id: "ma17", text: "9.1 ¿Los resultados de auditorías, revisiones de la dirección o incidentes viales derivan en ajustes del proceso de mantenimiento?" }
-        ]
-    },
-    {
-        id: "hr",
-        title: "Capacitación y RRHH",
-        icon: "fa-user-graduate",
-        description: "Cláusulas 7.2, 7.3, 7.4, 7.5 y 9.1 (Factor Humano).",
-        recommendation: "Fortalecer la verificación de competencias antes de la contratación y asegurar que la capacitación sea continua y registrada.",
-        questions: [
-            // 7.2
-            {id: "hr1",text: "7.2 ¿La organización cuenta con los recursos necesarios (personal, presupuesto, materiales, espacios, herramientas) para realizar el reclutamiento y la capacitación adecuadamente?"},
-            { id: "hr2", text: "7.2 ¿Los recursos asignados son suficientes para asegurar la formación continua del personal que impacta la seguridad vial?" },
-            { id: "hr3", text: "7.2 ¿Los recursos para capacitación (instructores, equipos, materiales) se mantienen disponibles y actualizados?" },
+            { id: "q7_2_1", clause: "7", subsection: "7.2", text: "¿Cómo determina la organización qué recursos son necesarios para el SGSV? ¿Se revisa periódicamente?", evidence: "Análisis de necesidades de recursos documentado, presupuesto aprobado para SV" },
+            { id: "q7_2_2", clause: "7", subsection: "7.2", text: "¿Se proporcionan recursos tecnológicos para el monitoreo de SV (GPS, tacógrafos, alcoholímetros, cámaras)?", evidence: "Inventario de equipos de SV, contratos de servicio de telemetría, calibraciones vigentes" },
             // 7.3
-            { id: "hr4", text: "7.3 ¿Los requisitos de competencia para cada puesto relacionado con seguridad vial están definidos claramente?" },
-            { id: "hr5", text: "7.3 ¿Se verifica que los candidatos cumplen con los requisitos de competencia antes de ser contratados?" },
-            { id: "hr6", text: "7.3 ¿El personal recibe capacitación para mantener o mejorar su competencia en temas relacionados con la seguridad vial?" },
-            { id: "hr7", text: "7.3 ¿Existen registros que demuestren la competencia del personal (evaluaciones, certificados, entrenamientos)?" },
+            { id: "q7_3_1", clause: "7", subsection: "7.3", text: "¿Están definidas las competencias en SV requeridas para cada puesto (conductor, despachador, supervisor, mecánico)?", evidence: "Perfiles de puesto con competencias de SV especificadas" },
+            { id: "q7_3_2", clause: "7", subsection: "7.3", text: "¿Cómo se verifica que los conductores y personal operativo son competentes en SV? ¿Hay evaluaciones?", evidence: "Registros de evaluaciones de competencia, resultados de pruebas de conocimiento y manejo" },
+            { id: "q7_3_3", clause: "7", subsection: "7.3", text: "¿Qué acciones se toman cuando se detecta una brecha de competencia en SV?", evidence: "Registro de necesidades de formación, constancias de capacitación: manejo defensivo, primeros auxilios, fatiga" },
+            { id: "q7_3_4", clause: "7", subsection: "7.3", text: "¿Se conserva información documentada como evidencia de la competencia del personal?", evidence: "Expedientes de personal con constancias de capacitación, certificaciones y evaluaciones" },
             // 7.4
-            { id: "hr8", text: "7.4 ¿Los trabajadores comprenden cómo su trabajo impacta la seguridad vial dentro de la organización?" },
-            { id: "hr9", text: "7.4 ¿El personal conoce la política, objetivos y responsabilidades relacionadas con la seguridad vial?" },
-            { id: "hr10", text: "7.4 ¿Los colaboradores entienden las consecuencias de no cumplir con los procedimientos y requisitos de seguridad vial?" },
-            { id: "hr11", text: "7.4 ¿La inducción y capacitación refuerzan la responsabilidad individual en la prevención de incidentes?" },
+            { id: "q7_4_1", clause: "7", subsection: "7.4", text: "¿El personal que realiza trabajo con impacto en SV conoce la política de SV de la empresa?", evidence: "Registros de inducción, acuses de conocimiento de la política firmados por conductores y personal" },
+            { id: "q7_4_2", clause: "7", subsection: "7.4", text: "¿El personal comprende cómo contribuye a la eficacia del SGSV y qué consecuencias tiene no cumplir sus requisitos?", evidence: "Materiales de comunicación interna, registros de pláticas de concienciación con firmas de asistencia" },
+            { id: "q7_4_3", clause: "7", subsection: "7.4", text: "¿Se comunican al personal las lecciones aprendidas de los principales incidentes de tráfico ocurridos en la empresa?", evidence: "Comunicados internos de lecciones aprendidas, registros de reuniones donde se discutieron incidentes" },
             // 7.5
-            { id: "hr12", text: "7.5 ¿La organización comunica de manera clara la información relevante sobre seguridad vial al personal nuevo y existente?" },
-            { id: "hr13", text: "7.5 ¿Los trabajadores conocen los canales para reportar incidentes, riesgos o dudas relacionadas con la seguridad vial?" },
-            { id: "hr14", text: "7.5 ¿Se difunden mensajes, instrucciones y actualizaciones relacionadas con seguridad vial a través de canales adecuados?" },
-            { id: "hr15", text: "7.5 ¿Los contratistas y personal externo reciben la misma información relevante en materia de comunicación y seguridad vial?" },
-            // 9.1
-            { id: "hr16", text: "9.1 ¿La organización realiza seguimiento al desempeño del personal capacitado (evaluaciones, indicadores de desempeño)?" },
-            { id: "hr17", text: "9.1 ¿Se miden aspectos clave del proceso de capacitación y reclutamiento (cumplimiento de programas, efectividad de cursos)?" },
-            { id: "hr18", text: "9.1 ¿Los datos recopilados del proceso son fiables y están debidamente registrados?" },
-            { id: "hr19", text: "9.1 ¿Se analizan los resultados para identificar tendencias o necesidades de mejora en capacitación y reclutamiento?" },
-            { id: "hr20", text: "9.1 ¿La información obtenida se utiliza para mejorar los planes de formación y los criterios de selección del personal?" },
-            { id: "hr21", text: "9.1 ¿El proceso de capacitación y reclutamiento se evalúa periódicamente para verificar su eficacia?" }
+            { id: "q7_5_1", clause: "7", subsection: "7.5", text: "¿Existe un plan o matriz de comunicación interna y externa para el SGSV? ¿Define qué, cuándo y a quién se comunica?", evidence: "Plan de comunicación documentado del SGSV" },
+            { id: "q7_5_2", clause: "7", subsection: "7.5", text: "¿Cómo se comunican internamente los temas de SV a los conductores? ¿Con qué frecuencia?", evidence: "Registros de reuniones de inicio de turno, boletines, correos, aplicación de mensajería interna" },
+            { id: "q7_5_3", clause: "7", subsection: "7.5", text: "¿Cómo promueve la organización el enfoque a largo plazo en SV con sus partes interesadas externas?", evidence: "Comunicaciones externas sobre SV, participación en foros o programas de seguridad vial del sector" },
+            // 7.6
+            { id: "q7_6_1", clause: "7", subsection: "7.6.1", text: "¿El SGSV incluye toda la información documentada requerida por la norma? ¿Existe un listado maestro de documentos?", evidence: "Listado maestro de documentos y registros del SGSV actualizado" },
+            { id: "q7_6_2", clause: "7", subsection: "7.6.2", text: "¿Los documentos del SGSV incluyen identificación, fecha, autor o número de referencia? ¿Están aprobados?", evidence: "Procedimiento de control documental, documentos con encabezado completo y firma de aprobación" },
+            { id: "q7_6_3", clause: "7", subsection: "7.6.3", text: "¿Cómo se controla que los documentos vigentes estén disponibles donde se necesitan y protegidos contra uso inadecuado?", evidence: "Sistema de gestión documental (físico o digital), registro de distribución, control de versiones" },
+            { id: "q7_6_4", clause: "7", subsection: "7.6.3", text: "¿Cómo se controla la información documentada de origen externo relevante para el SGSV (reglamentos, normas técnicas)?", evidence: "Listado de documentos externos controlados con fechas de actualización y responsable de seguimiento" },
         ]
     },
+
+    // ── CLÁUSULA 8 ──────────────────────────────────────────────────────────
     {
-        id: "audit",
-        title: "Auditorías Internas",
-        icon: "fa-clipboard-check",
-        description: "Cláusula 9.3 (Verificación).",
-        recommendation: "Asegurar la independencia de los auditores y que los hallazgos deriven siempre en un plan de acción formal.",
+        id: "clause8",
+        title: "8. Operación",
+        icon: "fa-truck-fast",
+        description: "Cláusula 8: Planificación y control operacional, preparación y respuesta a emergencias.",
         questions: [
-            { id: "au1", text: "9.3 ¿La organización cuenta con un procedimiento de auditorías internas?" },
-            { id: "au2", text: "9.3 ¿Existe un programa de auditorías internas que cubra el alcance del Sistema de Gestión de Seguridad Vial?" },
-            { id: "au3", text: "9.3 ¿La planificación considera la importancia de los procesos y los resultados de auditorías previas?" },
-            { id: "au4", text: "9.3 ¿El programa define frecuencia, métodos y responsabilidades?" },
-            { id: "au5", text: "9.3 ¿Los auditores internos cuentan con competencias necesarias para realizar auditorías del sistema de seguridad vial?" },
-            { id: "au6", text: "9.3 ¿Se garantiza que los auditores sean independientes del área o actividad que auditan?" },
-            { id: "au7", text: "9.3 ¿Existen registros de capacitación o formación de los auditores?" },
-            { id: "au8", text: "9.3 ¿Las auditorías se realizan conforme a lo planificado?" },
-            { id: "au9", text: "9.3 ¿Los auditores aplican criterios claros y definidos para evaluar el cumplimiento del sistema de gestión?" },
-            { id: "au10", text: "9.3 ¿Se recopilan evidencias suficientes para respaldar los resultados de la auditoría?" },
-            { id: "au11", text: "9.3 ¿Los resultados de las auditorías internas se documentan adecuadamente en informes?" },
-            { id: "au12", text: "9.3 ¿Se registran las no conformidades, observaciones o áreas de mejora detectadas?" },
-            { id: "au13", text: "9.3 ¿Los informes de auditoría se distribuyen a las personas responsables?" },
-            { id: "au14", text: "9.3 ¿Se revisa periódicamente la eficacia del proceso de auditorías internas?" },
-            { id: "au15", text: "9.3 ¿Los resultados de auditorías previas se utilizan para mejorar el programa de auditorías?" },
-            { id: "au16", text: "9.3 ¿La alta dirección recibe información sobre el desempeño del proceso de auditoría interna?" }
+            // 8.1
+            { id: "q8_1_1", clause: "8", subsection: "8.1", text: "¿Están documentados los procedimientos operacionales clave que tratan los factores de desempeño en SV identificados?", evidence: "Procedimientos de: inspección pre-viaje, gestión de fatiga, control de velocidad, manejo de carga, protocolo en caso de accidente" },
+            { id: "q8_1_2", clause: "8", subsection: "8.1", text: "¿Se aplican los controles operacionales en campo? Solicite ver registros de la última semana.", evidence: "Listas de verificación pre-viaje firmadas, registros de despacho con validación de aptitud del conductor" },
+            { id: "q8_1_3", clause: "8", subsection: "8.1", text: "¿Cómo se gestionan los cambios planificados y no planificados en operaciones (nueva ruta, sustitución de conductor, falla de unidad)?", evidence: "Procedimiento de gestión de cambios, registros de cambios autorizados con evaluación de impacto en SV" },
+            { id: "q8_1_4", clause: "8", subsection: "8.1", text: "¿Cómo se asegura el control de los procesos contratados externamente (talleres, transportistas subcontratados, agencias de conductores)?", evidence: "Contratos con cláusulas de SV, evaluación de proveedores en materia de SV, auditorías a subcontratistas" },
+            // 8.2
+            { id: "q8_2_1", clause: "8", subsection: "8.2", text: "¿Existe un procedimiento documentado de respuesta ante accidentes de tráfico con muerte o heridas graves?", evidence: "Procedimiento de respuesta a emergencias viales con cadena de notificación y responsables definidos" },
+            { id: "q8_2_2", clause: "8", subsection: "8.2", text: "¿Se han realizado simulacros o ensayos del procedimiento de respuesta a emergencias? ¿Con qué frecuencia?", evidence: "Registros de simulacros, evaluación de resultados y acciones de mejora derivadas" },
+            { id: "q8_2_3", clause: "8", subsection: "8.2", text: "¿El procedimiento de emergencia contempla la notificación a autoridades, aseguradoras y a la alta dirección?", evidence: "Directorio de emergencias actualizado, flujograma de notificación incluido en el procedimiento" },
         ]
     },
+
+    // ── CLÁUSULA 9 ──────────────────────────────────────────────────────────
     {
-        id: "improvement",
-        title: "Mejora Continua",
+        id: "clause9",
+        title: "9. Evaluación del desempeño",
+        icon: "fa-chart-line",
+        description: "Cláusula 9: Seguimiento, medición, investigación de incidentes, auditoría interna y revisión por la dirección.",
+        questions: [
+            // 9.1
+            { id: "q9_1_1", clause: "9", subsection: "9.1", text: "¿Cuáles son los indicadores de desempeño en SV que monitorea la organización? ¿Con qué frecuencia?", evidence: "Tablero de indicadores SV: tasa de siniestralidad, excesos de velocidad, km sin accidente, % inspecciones completadas" },
+            { id: "q9_1_2", clause: "9", subsection: "9.1", text: "¿Los métodos de medición garantizan resultados válidos y confiables? ¿Los equipos están calibrados?", evidence: "Certificados de calibración de tacógrafos, alcoholímetros y equipos GPS" },
+            { id: "q9_1_3", clause: "9", subsection: "9.1", text: "¿Existe un proceso para evaluar periódicamente el cumplimiento de los requisitos legales en materia de SV?", evidence: "Checklist de cumplimiento legal actualizado, registros de evaluaciones con fechas y responsable" },
+            { id: "q9_1_4", clause: "9", subsection: "9.1", text: "¿Se conservan registros de los resultados de seguimiento y medición como evidencia?", evidence: "Reportes mensuales o trimestrales de desempeño SV archivados y disponibles" },
+            // 9.2
+            { id: "q9_2_1", clause: "9", subsection: "9.2", text: "¿Existe un procedimiento para registrar, investigar y analizar accidentes e incidentes de tráfico?", evidence: "Procedimiento de investigación de incidentes de tráfico documentado y vigente" },
+            { id: "q9_2_2", clause: "9", subsection: "9.2", text: "¿Se realizan investigaciones para determinar los factores subyacentes que la organización puede controlar?", evidence: "Informes de investigación con análisis de causa raíz (los últimos 3 accidentes o incidentes graves)" },
+            { id: "q9_2_3", clause: "9", subsection: "9.2", text: "¿Las investigaciones se realizan oportunamente? ¿Hay un plazo definido para iniciarlas?", evidence: "Fechas de ocurrencia vs. fechas de inicio de investigación en los informes revisados" },
+            { id: "q9_2_4", clause: "9", subsection: "9.2", text: "¿Las necesidades de acciones correctivas y oportunidades preventivas identificadas en las investigaciones se dan seguimiento?", evidence: "Plan de acciones derivado de investigaciones, con estado de implementación y verificación de eficacia" },
+            // 9.3
+            { id: "q9_3_1", clause: "9", subsection: "9.3", text: "¿Existe un programa anual de auditorías internas del SGSV? ¿Se ha ejecutado conforme a lo planificado?", evidence: "Programa de auditorías con frecuencia, alcance y fechas. Comparativo planificado vs. ejecutado" },
+            { id: "q9_3_2", clause: "9", subsection: "9.3", text: "¿Los auditores internos son objetivos e imparciales? ¿Tienen la competencia necesaria?", evidence: "Perfil de auditores, evidencia de formación como auditor interno, declaración de imparcialidad" },
+            { id: "q9_3_3", clause: "9", subsection: "9.3", text: "¿Los informes de auditoría se comunican a la dirección pertinente? ¿Se da seguimiento a los hallazgos?", evidence: "Informes de auditoría con hallazgos, no conformidades y plan de acciones correctivas con fechas de cierre" },
+            // 9.4
+            { id: "q9_4_1", clause: "9", subsection: "9.4", text: "¿La alta dirección revisa el SGSV a intervalos planificados? ¿Con qué frecuencia se realiza?", evidence: "Acta formal de revisión por la dirección con fecha, asistentes y todos los puntos de la norma cubiertos" },
+            { id: "q9_4_2", clause: "9", subsection: "9.4", text: "¿La revisión incluye análisis del desempeño en SV, resultados de auditorías, estado de acciones previas y oportunidades de mejora?", evidence: "Agenda y minuta de revisión con cada punto requerido por §9.4 de la norma" },
+            { id: "q9_4_3", clause: "9", subsection: "9.4", text: "¿Las decisiones de la revisión por la dirección incluyen compromisos de recursos y cambios necesarios al SGSV?", evidence: "Compromisos y acuerdos registrados en el acta con responsable y fecha de cumplimiento" },
+        ]
+    },
+
+    // ── CLÁUSULA 10 ─────────────────────────────────────────────────────────
+    {
+        id: "clause10",
+        title: "10. Mejora",
         icon: "fa-arrow-trend-up",
-        description: "Cláusulas 10.1 y 10.2 (Acciones Correctivas).",
-        recommendation: "Implementar análisis de causa raíz profundos para evitar la recurrencia de no conformidades.",
+        description: "Cláusula 10: No conformidades, acciones correctivas y mejora continua.",
         questions: [
             // 10.1
-            { id: "im1", text: "10.1 ¿La organización cuenta con un procedimiento de no conformidades y acciones correctivas?" },
-            { id: "im2", text: "10.1 ¿Se analizan las causas de cada no conformidad de manera estructurada y objetiva? (Método de análisis)" },
-            { id: "im3", text: "10.1 ¿Las acciones correctivas están claramente definidas, con responsables y plazos establecidos?" },
-            { id: "im4", text: "10.1 ¿La organización da seguimiento al cumplimiento e implementación de las acciones correctivas?" },
-            { id: "im5", text: "10.1 ¿Se verifica la eficacia de las acciones correctivas para evitar la recurrencia de las no conformidades?" },
-            { id: "im6", text: "10.1 ¿Se comunican y registran adecuadamente las no conformidades y las acciones tomadas?" },
+            { id: "q10_1_1", clause: "10", subsection: "10.1", text: "¿Existe un procedimiento para gestionar las no conformidades del SGSV? ¿Cómo se registran y tratan?", evidence: "Procedimiento de no conformidades y acciones correctivas, formato de reporte de no conformidad" },
+            { id: "q10_1_2", clause: "10", subsection: "10.1", text: "¿Todas las no conformidades detectadas en el último año tienen causa raíz identificada y acción correctiva implementada?", evidence: "Registro de no conformidades con análisis de causa raíz, acción implementada y verificación de eficacia" },
+            { id: "q10_1_3", clause: "10", subsection: "10.1", text: "¿Se revisa la eficacia de las acciones correctivas tomadas? ¿Cómo se verifica que la no conformidad no vuelve a ocurrir?", evidence: "Registros de verificación de eficacia, indicadores de recurrencia de no conformidades" },
+            { id: "q10_1_4", clause: "10", subsection: "10.1", text: "¿Se analiza si existen no conformidades similares o potenciales en otras áreas o procesos cuando se detecta una?", evidence: "Evidencia de extensión del análisis a otros procesos (análisis de tendencias, revisión horizontal)" },
             // 10.2
-            { id: "im7", text: "10.2 ¿La organización utiliza los resultados de las auditorías internas para identificar oportunidades de mejora?" },
-            { id: "im8", text: "10.2 ¿Se analizan tendencias o patrones derivados de auditorías anteriores para impulsar mejoras?" },
-            { id: "im9", text: "10.2 ¿Las acciones de mejora identificadas se planifican, implementan y siguen adecuadamente?" },
-            { id: "im10", text: "10.2 ¿La organización evalúa si las mejoras implementadas realmente fortalecen el desempeño del sistema de gestión?" },
-            { id: "im11", text: "10.2 ¿La alta dirección recibe información sobre oportunidades de mejora derivadas de las auditorías internas?" },
-            { id: "im12", text: "10.2 ¿Las lecciones aprendidas en auditorías previas se integran para mejorar los métodos, criterios o frecuencia de auditorías?" }
-        ]
-    },
-    {
-        id: "emergency",
-        title: "Siniestros y Emergencias",
-        icon: "fa-truck-medical",
-        description: "Cláusulas 8.2, 9.1 y 9.2 (Respuesta e Investigación).",
-        recommendation: "Documentar exhaustivamente las investigaciones de accidentes y verificar que las lecciones aprendidas se incorporen a la operación.",
-        questions: [
-            // 8.2
-            { id: "em1", text: "8.2 ¿La organización cuenta con procedimientos establecidos para atender emergencias viales y siniestros?" },
-            { id: "em2", text: "8.2 ¿El personal conoce el protocolo de actuación, comunicación y escalamiento ante emergencias?" },
-            { id: "em3", text: "8.2 ¿Existen recursos disponibles (contactos, equipos, información) para atender oportunamente un siniestro?" },
-            { id: "em4", text: "8.2 ¿Los procedimientos describen claramente roles, responsabilidades y pasos a seguir en caso de emergencia?" },
-            { id: "em5", text: "8.2 ¿La organización ha identificado y documentado los tipos de emergencias viales posibles en su operación?" },
-            { id: "em6", text: "8.2 ¿Se realiza capacitación o sensibilización al personal sobre cómo actuar en caso de incidentes o emergencias?" },
-            // 9.1
-            { id: "em7", text: "9.1 ¿La organización recopila y registra información de todos los siniestros e incidentes atendidos?" },
-            { id: "em8", text: "9.1 ¿Se miden indicadores clave como número de siniestros, severidad, tiempos de respuesta o reincidencias?" },
-            { id: "em9", text: "9.1 ¿Los datos generados por la atención a siniestros son confiables, completos y están bien documentados?" },
-            { id: "em10", text: "9.1 ¿Se analizan los resultados para identificar tendencias, factores recurrentes o áreas de mejora?" },
-            { id: "em11", text: "9.1 ¿La información obtenida se comunica a las áreas responsables y se utiliza para fortalecer la seguridad vial?" },
-            { id: "em12", text: "9.1 ¿El proceso se evalúa periódicamente para verificar la eficacia de la respuesta ante emergencias y el manejo de siniestros?" },
-            // 9.2
-            { id: "em13", text: "9.2 ¿La organización realiza investigaciones formales de todos los accidentes e incidentes de tráfico relevantes?" },
-            { id: "em14", text: "9.2 ¿Las investigaciones identifican causas raíz y factores contribuyentes de manera estructurada?" },
-            { id: "em15", text: "9.2 ¿Se documentan adecuadamente los hallazgos, evidencias y conclusiones de cada investigación?" },
-            { id: "em16", text: "9.2 ¿Los resultados de la investigación se utilizan para definir acciones correctivas o preventivas?" },
-            { id: "em17", text: "9.2 ¿Se hace seguimiento a la implementación y eficacia de las acciones tomadas tras un siniestro?" },
-            { id: "em18", text: "9.2 ¿Las lecciones aprendidas se incorporan en los procedimientos de emergencia, capacitación o controles operativos?" }
-        ]
-    },
-    {
-        id: "docs",
-        title: "Información Documentada",
-        icon: "fa-file-contract",
-        description: "Cláusula 7.6 (Control Documental).",
-        recommendation: "Establecer una Lista Maestra y asegurar que no existan documentos obsoletos en uso.",
-        questions: [
-            // 7.6.1
-            { id: "doc1", text: "7.6.1 ¿La organización ha definido qué información documentada es necesaria para apoyar el sistema de gestión de seguridad vial?" },
-            { id: "doc2", text: "7.6.1 ¿Existe un método para identificar, clasificar y mantener la información documentada del sistema?" },
-            { id: "doc3", text: "7.6.1 ¿La información documentada requerida está disponible para quienes la necesitan?" },
-            // 7.6.2
-            { id: "doc4", text: "7.6.2 ¿La información documentada se crea siguiendo criterios de claridad, integridad y formato definido por la organización?" },
-            { id: "doc5", text: "7.6.2 ¿Las actualizaciones de documentos incluyen revisión, aprobación y control de versiones?" },
-            { id: "doc6", text: "7.6.2 ¿Las responsabilidades para crear, revisar y aprobar información documentada están claramente establecidas?" },
-            { id: "doc7", text: "7.6.2 ¿Los documentos actualizados están disponibles oportunamente para el personal que los utiliza?" },
-            // 7.6.3
-            { id: "doc8", text: "7.6.3 ¿La organización controla el acceso a documentos para asegurarse de que solo se utilicen versiones vigentes?" },
-            { id: "doc9", text: "7.6.3 ¿Se protege la información documentada contra pérdida, uso indebido, deterioro o acceso no autorizado?" },
-            { id: "doc10", text: "7.6.3 ¿Los registros se gestionan adecuadamente en cuanto a archivo, identificación, acceso y tiempo de retención?" },
-            { id: "doc11", text: "7.6.3 ¿Se asegura que documentos obsoletos sean retirados o identificados para evitar su uso?" },
-            {id: "doc12",text: "7.6.3 ¿La información documentada externa necesaria (normas, requisitos legales, documentos de proveedores) está controlada y actualizada?"},
-            { id: "doc13", text: "7.6.3 ¿El personal conoce cómo acceder y utilizar la información documentada aplicable a su proceso?" },
-            { id: "doc14", text: "7.6.3 ¿La organización cuenta con una lista maestra de documentos?" }
+            { id: "q10_2_1", clause: "10", subsection: "10.2", text: "¿Cómo demuestra la organización que mejora continuamente la idoneidad, adecuación y eficacia del SGSV?", evidence: "Comparativo de indicadores SV año vs. año anterior, proyectos de mejora documentados e implementados" },
+            { id: "q10_2_2", clause: "10", subsection: "10.2", text: "¿Las mejoras implementadas provienen de múltiples fuentes (auditorías, revisión por la dirección, investigación de incidentes, análisis de riesgos)?", evidence: "Registro de mejoras con fuente de origen identificada, trazabilidad desde la detección hasta el cierre" },
         ]
     }
 ];

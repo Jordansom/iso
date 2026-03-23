@@ -230,9 +230,7 @@ function renderSections() {
  
         let lastSubsection = '';
         section.questions.forEach((q, qIndex) => {
-            // Busca prefijos detallados como 7.6.1 o 9.1 primero; si no hay, toma el general (ej: 7.6)
-            const match = q.text.match(/^(\d+\.\d+\.\d+|\d+\.\d+)/);
-            let currentPrefix = match ? match[1] : null;
+            const currentPrefix = q.subsection || null;
  
             if (currentPrefix && currentPrefix !== lastSubsection) {
                 const subsectionTitle = subsectionTitles[currentPrefix] || currentPrefix;
@@ -426,11 +424,10 @@ async function loadProgress() {
             updateSummary();
             return;
         }
-        // Auto-load the most recent record (index 0 = newest)
-        applyRecord(records[0]);
         updateSavedListButton(records.length);
         const n = records.length;
-        showToast(`Progreso restaurado (${n} guardado${n > 1 ? 's' : ''} disponible${n > 1 ? 's' : ''})`, 'info');
+        showToast(`${n} registro${n > 1 ? 's' : ''} guardado${n > 1 ? 's' : ''} disponible${n > 1 ? 's' : ''}. Usa "Ver Guardados" para cargar uno.`, 'info');
+        updateSummary();
     } catch (err) {
         updateSummary();
     }
@@ -443,7 +440,9 @@ function applyRecord(record) {
     document.getElementById('evaluatorName').value = record.evaluatorName || '';
     document.getElementById('companyContact').value = record.companyContact || '';
     if (record.answers && typeof record.answers === 'object') {
-        userAnswers = record.answers;
+        // Only keep answers whose IDs exist in the current evaluationData (discard stale old IDs)
+        const validIds = new Set(evaluationData.flatMap(s => s.questions.map(q => q.id)));
+        userAnswers = Object.fromEntries(Object.entries(record.answers).filter(([k]) => validIds.has(k)));
         document.querySelectorAll('.answer-btn').forEach(b => b.classList.remove('selected-yes', 'selected-no'));
         evaluationData.forEach(section => {
             section.questions.forEach(q => {
@@ -648,9 +647,8 @@ function renderChart(dataValues) {
     const _cMap = {}, _csMap = {};
     evaluationData.forEach(sec => {
         sec.questions.forEach(q => {
-            const m = q.text.match(/^(\d+)\./);
-            if (m) {
-                const n = m[1];
+            const n = q.clause || (q.text.match(/^(\d+)\./) || [])[1];
+            if (n) {
                 _cMap[n]  = (_cMap[n]  || 0) + 1;
                 _csMap[n] = (_csMap[n] || 0) + (userAnswers[q.id] || 0);
             }
@@ -911,40 +909,51 @@ async function generatePDF() {
     // El prompt dice "si se tienen la mayoria de alguna seccion calificadas mal".
     // Interpretación: Score <= 50%
     
-    const failedSections = [];
-    evaluationData.forEach((section, idx) => {
-        if (sectionScores[idx] <= 50) {
-            failedSections.push(section);
-        }
+    // Recopilar preguntas respondidas con "No" (score = 0)
+    const failedQuestions = [];
+    evaluationData.forEach(section => {
+        section.questions.forEach(q => {
+            if (userAnswers[q.id] === 0) {
+                failedQuestions.push({
+                    subsection: q.subsection || '',
+                    text: q.text,
+                    evidence: q.evidence || ''
+                });
+            }
+        });
     });
 
-    if (failedSections.length > 0) {
-        doc.setFontSize(12);
+    if (failedQuestions.length > 0) {
+        doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(200, 50, 50);
-        doc.text("Áreas Críticas Detectadas:", 15, currentY);
+        doc.text("Hallazgos y Evidencias Requeridas:", 15, currentY);
         currentY += 10;
 
-        failedSections.forEach(sec => {
-            // Check page break
+        failedQuestions.forEach(item => {
+            if (currentY > 265) { doc.addPage(); currentY = 20; }
+
+            doc.setFontSize(9);
+            doc.setTextColor(30, 30, 30);
+            doc.setFont('helvetica', 'bold');
+            const bulletText = `\u2022 [${item.subsection}] ${item.text}`;
+            const splitQuestion = doc.splitTextToSize(bulletText, 175);
+            doc.text(splitQuestion, 15, currentY);
+            currentY += splitQuestion.length * 5 + 3;
+
             if (currentY > 270) { doc.addPage(); currentY = 20; }
 
-            doc.setFontSize(11);
-            doc.setTextColor(0, 0, 0);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`• ${sec.title}:`, 15, currentY);
-            currentY += 6;
-            
-            doc.setFont('helvetica', 'normal');
             doc.setFontSize(10);
-            const splitRec = doc.splitTextToSize(sec.recommendation, 170);
-            doc.text(splitRec, 20, currentY);
-            currentY += splitRec.length * 5 + 8;
+            doc.setTextColor(0, 100, 150);
+            doc.setFont('helvetica', 'italic');
+            const splitEvidence = doc.splitTextToSize(`Evidencia esperada: ${item.evidence}`, 190);
+            doc.text(splitEvidence, 25, currentY);
+            currentY += splitEvidence.length * 4.5 + 6;
         });
     } else {
         doc.setFontSize(11);
         doc.setTextColor(0, 150, 0);
-        doc.text("No se detectaron secciones críticas por debajo del umbral del 50%.", 15, currentY);
+        doc.text("No se detectaron preguntas no cumplidas. \u00a1Excelente desempe\u00f1o!", 15, currentY);
         currentY += 15;
     }
 
