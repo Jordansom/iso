@@ -772,7 +772,7 @@ async function generatePDF() {
 
     // Score Summary
     doc.setFontSize(14);
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(...aquaColor);
     doc.text("Resumen de Cumplimiento", 15, 70);
 
     doc.setDrawColor(200, 200, 200);
@@ -807,11 +807,11 @@ async function generatePDF() {
     const _clauseScoreMap = {};
     evaluationData.forEach(sec => {
         sec.questions.forEach(q => {
-            const m = q.text.match(/^(\d+)\./);
-            if (m) {
-                _clauseMap[m[1]] = (_clauseMap[m[1]] || 0) + 1;
+            const n = q.clause || (q.text.match(/^(\d+)\./) || [])[1];
+            if (n) {
+                _clauseMap[n] = (_clauseMap[n] || 0) + 1;
                 if (userAnswers[q.id] === 1) {
-                    _clauseScoreMap[m[1]] = (_clauseScoreMap[m[1]] || 0) + 1;
+                    _clauseScoreMap[n] = (_clauseScoreMap[n] || 0) + 1;
                 }
             }
         });
@@ -887,7 +887,7 @@ async function generatePDF() {
     doc.addPage();
 
     doc.setFontSize(16);
-    doc.setTextColor(...primaryColor);
+    doc.setTextColor(...aquaColor);
     doc.text("Plan de Acción y Recomendaciones", 15, 20);
     doc.line(15, 22, 195, 22);
 
@@ -909,46 +909,55 @@ async function generatePDF() {
     // El prompt dice "si se tienen la mayoria de alguna seccion calificadas mal".
     // Interpretación: Score <= 50%
     
-    // Recopilar preguntas respondidas con "No" (score = 0)
-    const failedQuestions = [];
+    // Agrupar preguntas respondidas con "No" (score = 0) por sección/cláusula
+    const _clauseGroups = {};
+    const _clauseOrderFailed = [];
     evaluationData.forEach(section => {
         section.questions.forEach(q => {
             if (userAnswers[q.id] === 0) {
-                failedQuestions.push({
-                    subsection: q.subsection || '',
-                    text: q.text,
-                    evidence: q.evidence || ''
-                });
+                if (!_clauseGroups[section.title]) {
+                    _clauseGroups[section.title] = [];
+                    _clauseOrderFailed.push(section.title);
+                }
+                _clauseGroups[section.title].push({ text: q.text, evidence: q.evidence || '' });
             }
         });
     });
 
-    if (failedQuestions.length > 0) {
+    if (_clauseOrderFailed.length > 0) {
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(200, 50, 50);
+        doc.setTextColor(...aquaColor);
         doc.text("Hallazgos y Evidencias Requeridas:", 15, currentY);
-        currentY += 10;
+        currentY += 8;
 
-        failedQuestions.forEach(item => {
-            if (currentY > 265) { doc.addPage(); currentY = 20; }
+        const _tableBody = [];
+        _clauseOrderFailed.forEach(clauseTitle => {
+            const items = _clauseGroups[clauseTitle];
+            items.forEach((item, i) => {
+                const row = [];
+                if (i === 0) {
+                    row.push({ content: clauseTitle, rowSpan: items.length, styles: { valign: 'middle', halign: 'center', fontStyle: 'bold' } });
+                }
+                row.push(`${i + 1}. ${item.text}`);
+                row.push(item.evidence);
+                _tableBody.push(row);
+            });
+        });
 
-            doc.setFontSize(9);
-            doc.setTextColor(30, 30, 30);
-            doc.setFont('helvetica', 'bold');
-            const bulletText = `\u2022 [${item.subsection}] ${item.text}`;
-            const splitQuestion = doc.splitTextToSize(bulletText, 175);
-            doc.text(splitQuestion, 15, currentY);
-            currentY += splitQuestion.length * 5 + 3;
-
-            if (currentY > 270) { doc.addPage(); currentY = 20; }
-
-            doc.setFontSize(10);
-            doc.setTextColor(0, 100, 150);
-            doc.setFont('helvetica', 'italic');
-            const splitEvidence = doc.splitTextToSize(`Evidencia esperada: ${item.evidence}`, 190);
-            doc.text(splitEvidence, 25, currentY);
-            currentY += splitEvidence.length * 4.5 + 6;
+        doc.autoTable({
+            startY: currentY,
+            margin: { left: 15, right: 15 },
+            head: [['Cl\u00e1usula de la norma', 'Hallazgo', 'Plan de acci\u00f3n']],
+            body: _tableBody,
+            theme: 'grid',
+            headStyles: { fillColor: primaryColor, fontSize: 14, halign: 'center', textColor: [255, 255, 255] },
+            styles: { fontSize: 10, valign: 'top', overflow: 'linebreak', cellPadding: 3 },
+            columnStyles: {
+                0: { cellWidth: 35, halign: 'center' },
+                1: { cellWidth: 80 },
+                2: { cellWidth: 57 }
+            }
         });
     } else {
         doc.setFontSize(11);
