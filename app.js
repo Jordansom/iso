@@ -177,6 +177,91 @@ function confirmResetProgress() {
     showToast('Evaluación reiniciada', 'info');
 }
 
+// --- EVALUATORS HELPERS ---
+function addEvaluator(nombre = '') {
+    const list = document.getElementById('evaluatorsList');
+    const row = document.createElement('div');
+    row.className = 'participant-row';
+    row.innerHTML = `
+        <input type="text" placeholder="Nombre del evaluador" value="${nombre.replace(/"/g, '&quot;')}">
+        <button type="button" class="btn-remove" onclick="removeEvaluator(this)" title="Eliminar"><i class="fas fa-times"></i></button>
+    `;
+    list.appendChild(row);
+}
+
+function removeEvaluator(btn) {
+    const list = document.getElementById('evaluatorsList');
+    if (list.children.length <= 1) {
+        showToast('Debe haber al menos un evaluador', 'error');
+        return;
+    }
+    btn.closest('.participant-row').remove();
+}
+
+function getEvaluators() {
+    const rows = document.querySelectorAll('#evaluatorsList .participant-row');
+    const result = [];
+    rows.forEach(row => {
+        const nombre = row.querySelector('input').value.trim();
+        if (nombre) result.push({ nombre });
+    });
+    return result;
+}
+
+function setEvaluators(arr) {
+    const list = document.getElementById('evaluatorsList');
+    list.innerHTML = '';
+    if (!arr || arr.length === 0) {
+        addEvaluator();
+    } else {
+        arr.forEach(e => addEvaluator(e.nombre || ''));
+    }
+}
+
+// --- PARTICIPANTS HELPERS ---
+function addParticipant(nombre = '', cargo = '') {
+    const list = document.getElementById('participantsList');
+    const row = document.createElement('div');
+    row.className = 'participant-row';
+    row.innerHTML = `
+        <input type="text" placeholder="Nombre" value="${nombre.replace(/"/g, '&quot;')}" style="flex:1.2">
+        <input type="text" placeholder="Cargo" value="${cargo.replace(/"/g, '&quot;')}">
+        <button type="button" class="btn-remove" onclick="removeParticipant(this)" title="Eliminar"><i class="fas fa-times"></i></button>
+    `;
+    list.appendChild(row);
+}
+
+function removeParticipant(btn) {
+    const list = document.getElementById('participantsList');
+    if (list.children.length <= 1) {
+        showToast('Debe haber al menos un participante', 'error');
+        return;
+    }
+    btn.closest('.participant-row').remove();
+}
+
+function getParticipants() {
+    const rows = document.querySelectorAll('#participantsList .participant-row');
+    const result = [];
+    rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const nombre = inputs[0].value.trim();
+        const cargo  = inputs[1].value.trim();
+        if (nombre || cargo) result.push({ nombre, cargo });
+    });
+    return result;
+}
+
+function setParticipants(arr) {
+    const list = document.getElementById('participantsList');
+    list.innerHTML = '';
+    if (!arr || arr.length === 0) {
+        addParticipant();
+    } else {
+        arr.forEach(p => addParticipant(p.nombre || '', p.cargo || ''));
+    }
+}
+
 // --- INITIALIZATION ---
 function initializeJsonData() {
     renderNav();
@@ -184,6 +269,14 @@ function initializeJsonData() {
     updateTotalCount();
     showSection(0);
     updateSummary();
+    // Ensure at least one evaluator row on init
+    if (document.getElementById('evaluatorsList') && document.getElementById('evaluatorsList').children.length === 0) {
+        addEvaluator();
+    }
+    // Ensure at least one participant row on init
+    if (document.getElementById('participantsList') && document.getElementById('participantsList').children.length === 0) {
+        addParticipant();
+    }
 }
 
 function updateTotalCount() {
@@ -394,20 +487,20 @@ function previousSection() {
 }
 
 async function saveProgress() {
-    const companyName = document.getElementById('companyName').value || '';
-    const evaluatorName = document.getElementById('evaluatorName').value || '';
-    const companyContact = document.getElementById('companyContact').value || '';
+    const companyName  = document.getElementById('companyName').value || '';
+    const evaluators   = getEvaluators();
+    const participants = getParticipants();
     try {
         let records = await _getProgressRecords(currentUsername);
         const isUpdate = activeRecordTimestamp !== null;
         if (isUpdate) {
             const idx = records.findIndex(r => r.timestamp === activeRecordTimestamp);
-            const updated = { timestamp: activeRecordTimestamp, companyName, evaluatorName, companyContact, answers: userAnswers, completed: evaluationCompleted ? 1 : 0 };
+            const updated = { timestamp: activeRecordTimestamp, companyName, evaluators, participants, answers: userAnswers, completed: evaluationCompleted ? 1 : 0 };
             if (idx >= 0) records[idx] = updated;
             else records.push(updated);
         } else {
             activeRecordTimestamp = new Date().toLocaleString('sv').replace('T', ' ');
-            records.push({ timestamp: activeRecordTimestamp, companyName, evaluatorName, companyContact, answers: userAnswers, completed: evaluationCompleted ? 1 : 0 });
+            records.push({ timestamp: activeRecordTimestamp, companyName, evaluators, participants, answers: userAnswers, completed: evaluationCompleted ? 1 : 0 });
         }
         if (records.length > 20) records = records.slice(-20);
         await _saveProgressRecords(currentUsername, records);
@@ -437,8 +530,8 @@ async function loadProgress() {
 function applyRecord(record) {
     activeRecordTimestamp = record.timestamp || null;
     document.getElementById('companyName').value = record.companyName || '';
-    document.getElementById('evaluatorName').value = record.evaluatorName || '';
-    document.getElementById('companyContact').value = record.companyContact || '';
+    setEvaluators(record.evaluators || []);
+    setParticipants(record.participants || []);
     if (record.answers && typeof record.answers === 'object') {
         // Only keep answers whose IDs exist in the current evaluationData (discard stale old IDs)
         const validIds = new Set(evaluationData.flatMap(s => s.questions.map(q => q.id)));
@@ -768,30 +861,59 @@ async function generatePDF() {
     doc.setTextColor(50, 50, 50);
     doc.setFontSize(10);
     doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 15, 50);
-    doc.text(`Evaluador: ${document.getElementById('evaluatorName').value || 'N/A'}`, 15, 55);
+
+    // Evaluators
+    const _evaluators = getEvaluators();
+    let _pY = 55;
+    if (_evaluators.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Evaluador(es):', 15, _pY);
+        doc.setFont('helvetica', 'normal');
+        _evaluators.forEach(e => {
+            _pY += 5;
+            doc.text(`• ${e.nombre}`, 20, _pY);
+        });
+        _pY += 3;
+    }
+
+    // Participants
+    const _participants = getParticipants();
+    if (_participants.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Participantes:', 15, _pY);
+        doc.setFont('helvetica', 'normal');
+        _participants.forEach(p => {
+            _pY += 5;
+            doc.text(`• ${p.nombre}${p.cargo ? ' — ' + p.cargo : ''}`, 20, _pY);
+        });
+    }
+    const _afterParticipantsY = _pY + 8;
 
     // Score Summary
     doc.setFontSize(14);
     doc.setTextColor(...aquaColor);
-    doc.text("Resumen de Cumplimiento", 15, 70);
+    doc.text("Resumen de Cumplimiento", 15, _afterParticipantsY);
 
     doc.setDrawColor(200, 200, 200);
-    doc.line(15, 72, 195, 72);
+    doc.line(15, _afterParticipantsY + 2, 195, _afterParticipantsY + 2);
 
     // Puntuación Global con color según rango
     const _scoreBoxColor = globalAverage >= 90 ? [135, 206, 250] :
                            globalAverage >= 85 ? [144, 238, 144] :
                            globalAverage >= 80 ? [255, 255, 153] : [255, 182, 193];
     doc.setFillColor(..._scoreBoxColor);
-    doc.roundedRect(15, 76, 100, 10, 2, 2, 'F');
+    doc.roundedRect(15, _afterParticipantsY + 6, 100, 10, 2, 2, 'F');
     doc.setFontSize(12);
     doc.setTextColor(30, 30, 30);
-    doc.text(`Puntuación Global: ${globalAverage}%`, 20, 83);
+    doc.text(`Puntuación Global: ${globalAverage}%`, 20, _afterParticipantsY + 13);
 
     // Insert Chart Image
     const canvas = document.getElementById('radarChart');
     const chartImg = canvas.toDataURL('image/png', 1.0);
-    doc.addImage(chartImg, 'PNG', 25, 90, 160, 80);
+    doc.addImage(chartImg, 'PNG', 25, _afterParticipantsY + 20, 160, 80);
+
+    // Tables start after chart
+    const _tablesY = _afterParticipantsY + 104;
 
     // ── Criteria / Scoring Reference Tables (page 1, after chart) ───────────
     const _clauseLabels = {
@@ -825,7 +947,7 @@ async function generatePDF() {
 
     // Left table: Rangos de gestión (legend / criteria)
     doc.autoTable({
-        startY: 174,
+        startY: _tablesY,
         margin: { left: 14, right: 120 },
         head: [['Rangos de gestión', 'Ponderación']],
         body: [
@@ -854,7 +976,7 @@ async function generatePDF() {
 
     // Right table: ISO clause — Resultado + % Cumplimiento (colored)
     doc.autoTable({
-        startY: 174,
+        startY: _tablesY,
         margin: { left: 105, right: 10 },
         head: [
             [{ content: 'ISO 39001:2012 Sistema de gestión de seguridad vial', colSpan: 3, styles: { halign: 'center' } }],

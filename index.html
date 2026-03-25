@@ -230,6 +230,12 @@
         ::-webkit-scrollbar-track { background: var(--bg-dark); }
         ::-webkit-scrollbar-thumb { background: var(--primary-dark); border-radius: 4px; }
 
+        .participant-row { display: flex; gap: 10px; align-items: center; }
+        .participant-row input { flex: 1; padding: 12px 14px; background: var(--bg-elevated); border: 2px solid rgba(206,0,155,0.1); border-radius: 10px; color: var(--text-primary); font-size: 14px; font-family: 'Outfit', sans-serif; transition: border-color 0.3s; }
+        .participant-row input:focus { outline: none; border-color: var(--primary); }
+        .participant-row .btn-remove { width: 40px; height: 40px; padding: 0; flex-shrink: 0; border-radius: 10px; background: rgba(255,71,87,0.1); border: 2px solid rgba(255,71,87,0.2); color: var(--danger); cursor: pointer; font-size: 16px; transition: all 0.2s; display:flex;align-items:center;justify-content:center; }
+        .participant-row .btn-remove:hover { background: rgba(255,71,87,0.25); border-color: var(--danger); }
+
         .subsection-title {
             margin-top: 2em;
             margin-bottom: 0.8em;
@@ -398,14 +404,28 @@
                         <label>Fecha de Evaluación</label>
                         <input type="date" id="evaluationDate">
                     </div>
-                    <div class="info-field">
-                        <label>Evaluador</label>
-                        <input type="text" id="evaluatorName" placeholder="Nombre del evaluador">
+                </div>
+
+                <!-- Evaluadores -->
+                <div style="margin-top:24px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                        <label style="font-size:13px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;">Evaluador(es)</label>
+                        <button type="button" class="btn btn-secondary" onclick="addEvaluator()" style="padding:6px 16px;font-size:13px;">
+                            <i class="fas fa-plus"></i> Agregar
+                        </button>
                     </div>
-                    <div class="info-field">
-                        <label>Contacto de la Empresa</label>
-                        <input type="text" id="companyContact" placeholder="Nombre y cargo">
+                    <div id="evaluatorsList" style="display:flex;flex-direction:column;gap:10px;"></div>
+                </div>
+
+                <!-- Participantes -->
+                <div style="margin-top:24px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                        <label style="font-size:13px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;">Participantes</label>
+                        <button type="button" class="btn btn-secondary" onclick="addParticipant()" style="padding:6px 16px;font-size:13px;">
+                            <i class="fas fa-plus"></i> Agregar
+                        </button>
                     </div>
+                    <div id="participantsList" style="display:flex;flex-direction:column;gap:10px;"></div>
                 </div>
             </div>
 
