@@ -1,6 +1,7 @@
 // app.js
 let currentSectionIndex = 0;
 let userAnswers = {}; // { questionId: value (1 or 0) }
+let userObservations = {}; // { questionId: observationText }
 let currentUsername = '';
 let evaluationCompleted = false;
 let activeRecordTimestamp = null; // timestamp of the record currently loaded; null = unsaved / new
@@ -167,8 +168,16 @@ function confirmResetProgress() {
     userAnswers = {};
     evaluationCompleted = false;
     activeRecordTimestamp = null;
+    userObservations = {};
     // Clear all button selections
     document.querySelectorAll('.answer-btn').forEach(b => b.classList.remove('selected-yes', 'selected-no'));
+    // Clear all observations
+    document.querySelectorAll('.obs-textarea').forEach(ta => { ta.value = ''; });
+    document.querySelectorAll('.obs-area').forEach(a => { a.style.display = 'none'; });
+    document.querySelectorAll('.obs-toggle-btn').forEach(b => {
+        b.classList.remove('has-obs');
+        b.innerHTML = '<i class="fas fa-plus"></i> Observación';
+    });
     // Reset all section progress indicators
     evaluationData.forEach(section => updateSectionProgress(section.id));
     updateTotalProgress();
@@ -347,6 +356,15 @@ function renderSections() {
                             <button class="answer-btn" onclick="selectAnswer('${section.id}', '${q.id}', 0, ${q.isInverse || false}, this)">No</button>
                         </div>
                     </div>
+                    <button class="obs-toggle-btn" id="obs-btn-${q.id}" onclick="toggleObservation('${q.id}')">
+                        <i class="fas fa-plus"></i> Observación
+                    </button>
+                    <div class="obs-area" id="obs-area-${q.id}" style="display:none;">
+                        <textarea class="obs-textarea" id="obs-${q.id}"
+                            placeholder="Escriba su observación aquí..."
+                            rows="2"
+                            oninput="updateObservation('${q.id}', this.value)"></textarea>
+                    </div>
                 </div>
             `;
         });
@@ -493,14 +511,18 @@ async function saveProgress() {
     try {
         let records = await _getProgressRecords(currentUsername);
         const isUpdate = activeRecordTimestamp !== null;
+        // Only persist non-empty observations
+        const cleanObservations = Object.fromEntries(
+            Object.entries(userObservations).filter(([, v]) => v && v.trim())
+        );
         if (isUpdate) {
             const idx = records.findIndex(r => r.timestamp === activeRecordTimestamp);
-            const updated = { timestamp: activeRecordTimestamp, companyName, evaluators, participants, answers: userAnswers, completed: evaluationCompleted ? 1 : 0 };
+            const updated = { timestamp: activeRecordTimestamp, companyName, evaluators, participants, answers: userAnswers, observations: cleanObservations, completed: evaluationCompleted ? 1 : 0 };
             if (idx >= 0) records[idx] = updated;
             else records.push(updated);
         } else {
             activeRecordTimestamp = new Date().toLocaleString('sv').replace('T', ' ');
-            records.push({ timestamp: activeRecordTimestamp, companyName, evaluators, participants, answers: userAnswers, completed: evaluationCompleted ? 1 : 0 });
+            records.push({ timestamp: activeRecordTimestamp, companyName, evaluators, participants, answers: userAnswers, observations: cleanObservations, completed: evaluationCompleted ? 1 : 0 });
         }
         if (records.length > 20) records = records.slice(-20);
         await _saveProgressRecords(currentUsername, records);
@@ -554,6 +576,22 @@ function applyRecord(record) {
         updateTotalProgress();
     }
     evaluationCompleted = !!record.completed;
+    // Restore observations
+    userObservations = {};
+    if (record.observations && typeof record.observations === 'object') {
+        const validIds = new Set(evaluationData.flatMap(s => s.questions.map(q => q.id)));
+        userObservations = Object.fromEntries(
+            Object.entries(record.observations).filter(([k, v]) => validIds.has(k) && v)
+        );
+        Object.entries(userObservations).forEach(([qId, obs]) => {
+            const ta   = document.getElementById(`obs-${qId}`);
+            const area = document.getElementById(`obs-area-${qId}`);
+            const btn  = document.getElementById(`obs-btn-${qId}`);
+            if (ta)   ta.value = obs;
+            if (area) area.style.display = 'block';
+            if (btn)  { btn.classList.add('has-obs'); btn.innerHTML = '<i class="fas fa-comment-alt"></i> Observación'; }
+        });
+    }
     updateSummary();
 }
 
@@ -1032,16 +1070,23 @@ async function generatePDF() {
     // Interpretación: Score <= 50%
     
     // Agrupar preguntas respondidas con "No" (score = 0) por sección/cláusula
+    // También incluir preguntas con "Sí" pero que tengan observación
     const _clauseGroups = {};
     const _clauseOrderFailed = [];
     evaluationData.forEach(section => {
         section.questions.forEach(q => {
-            if (userAnswers[q.id] === 0) {
+            const isFailure = userAnswers[q.id] === 0;
+            const hasObs = !!(userObservations[q.id] && userObservations[q.id].trim());
+            if (isFailure || hasObs) {
                 if (!_clauseGroups[section.title]) {
                     _clauseGroups[section.title] = [];
                     _clauseOrderFailed.push(section.title);
                 }
-                _clauseGroups[section.title].push({ text: q.text, evidence: q.evidence || '' });
+                _clauseGroups[section.title].push({
+                    text: q.text,
+                    evidence: q.evidence || '',
+                    observation: (userObservations[q.id] || '').trim()
+                });
             }
         });
     });
@@ -1054,31 +1099,71 @@ async function generatePDF() {
         currentY += 8;
 
         const _tableBody = [];
+        const _obsRowIndices = new Set(); // track observation row indices
         _clauseOrderFailed.forEach(clauseTitle => {
             const items = _clauseGroups[clauseTitle];
+            // Count total rows: 1 per item + 1 extra for each item that has an observation
+            const totalRows = items.reduce((sum, item) => sum + 1 + (item.observation ? 1 : 0), 0);
+            let isFirstRow = true;
             items.forEach((item, i) => {
                 const row = [];
-                if (i === 0) {
-                    row.push({ content: clauseTitle, rowSpan: items.length, styles: { valign: 'middle', halign: 'center', fontStyle: 'bold' } });
+                if (isFirstRow) {
+                    row.push({ content: clauseTitle, rowSpan: totalRows, styles: { valign: 'middle', halign: 'center', fontStyle: 'bold' } });
+                    isFirstRow = false;
                 }
                 row.push(`${i + 1}. ${item.text}`);
-                row.push(item.evidence);
+                row.push(item.evidence || '');
                 _tableBody.push(row);
+                // Extra row for the observation: label in Hallazgo col, text in Plan de acción col
+                if (item.observation) {
+                _obsRowIndices.add(_tableBody.length);
+                _tableBody.push([
+                    { 
+                        content: '\u21b3 Observaci\u00f3n:',
+                        styles: {
+                            fontStyle: 'bolditalic',
+                            textColor: [90, 60, 0],
+                            fillColor: [255, 251, 225],
+                            halign: 'center',
+                            valign: 'middle',
+                            cellPadding: 3
+                        }
+                    },
+                    { 
+                        content: item.observation,
+                        styles: {
+                            fontStyle: 'italic',
+                            textColor: [90, 60, 0],
+                            fillColor: [255, 251, 225],
+                            overflow: 'linebreak',
+                            cellPadding: 3
+                        }
+                    }
+                ]);
+            }
             });
         });
 
         doc.autoTable({
             startY: currentY,
             margin: { left: 15, right: 15 },
-            head: [['Cl\u00e1usula de la norma', 'Hallazgo', 'Plan de acci\u00f3n']],
+            tableWidth: 180,
+            head: [['Cl\u00e1usula de la norma', 'Hallazgo', 'Plan de acci\u00f3n / Observaciones']],
             body: _tableBody,
             theme: 'grid',
-            headStyles: { fillColor: primaryColor, fontSize: 14, halign: 'center', textColor: [255, 255, 255] },
-            styles: { fontSize: 10, valign: 'top', overflow: 'linebreak', cellPadding: 3 },
+            headStyles: { fillColor: primaryColor, fontSize: 10, halign: 'center', textColor: [255, 255, 255] },
+            styles: { fontSize: 10, valign: 'top', overflow: 'linebreak', cellPadding: 2 },
             columnStyles: {
-                0: { cellWidth: 35, halign: 'center' },
-                1: { cellWidth: 80 },
-                2: { cellWidth: 57 }
+                0: { cellWidth: 30, halign: 'center' },
+                1: { cellWidth: 75 },
+                2: { cellWidth: 75 }
+            },
+            didDrawCell: data => {
+                if (data.section === 'body' && _obsRowIndices.has(data.row.index) && data.column.index === 0) {
+                    const cell = data.cell;
+                    doc.setFillColor(255, 251, 225);
+                    doc.rect(cell.x + cell.width - 0.5, cell.y + 0.2, 1, cell.height - 0.4, 'F');
+                }
             }
         });
     } else {
@@ -1098,6 +1183,35 @@ async function generatePDF() {
     }
 
     doc.save(`PreCertificacion_ISO39001_${company.replace(/\s+/g, '_')}.pdf`);
+}
+
+// --- OBSERVATION HELPERS ---
+function toggleObservation(questionId) {
+    const area = document.getElementById(`obs-area-${questionId}`);
+    const btn  = document.getElementById(`obs-btn-${questionId}`);
+    const isVisible = area.style.display !== 'none';
+    area.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+        const ta = document.getElementById(`obs-${questionId}`);
+        if (ta) setTimeout(() => ta.focus(), 50);
+        btn.innerHTML = '<i class="fas fa-minus"></i> Observación';
+    } else {
+        const hasObs = userObservations[questionId] && userObservations[questionId].trim();
+        btn.innerHTML = hasObs
+            ? '<i class="fas fa-comment-alt"></i> Observación'
+            : '<i class="fas fa-plus"></i> Observación';
+    }
+}
+
+function updateObservation(questionId, value) {
+    const btn = document.getElementById(`obs-btn-${questionId}`);
+    if (value.trim()) {
+        userObservations[questionId] = value.trim();
+        if (btn) btn.classList.add('has-obs');
+    } else {
+        delete userObservations[questionId];
+        if (btn) btn.classList.remove('has-obs');
+    }
 }
 
 function showToast(message, type = 'info') {
