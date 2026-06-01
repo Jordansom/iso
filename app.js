@@ -855,6 +855,9 @@ function closeModal() {
 
 // --- PDF GENERATION ---
 async function generatePDF() {
+    // Save progress to database before generating PDF
+    await saveProgress();
+    
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const company = document.getElementById('companyName').value || "Empresa No Definida";
@@ -1074,7 +1077,7 @@ async function generatePDF() {
     const _clauseGroups = {};
     const _clauseOrderFailed = [];
     evaluationData.forEach(section => {
-        section.questions.forEach(q => {
+        section.questions.forEach((q, qIdx) => {
             const isFailure = userAnswers[q.id] === 0;
             const hasObs = !!(userObservations[q.id] && userObservations[q.id].trim());
             if (isFailure || hasObs) {
@@ -1083,6 +1086,7 @@ async function generatePDF() {
                     _clauseOrderFailed.push(section.title);
                 }
                 _clauseGroups[section.title].push({
+                    originalIndex: qIdx + 1,
                     text: q.text,
                     evidence: q.evidence || '',
                     observation: (userObservations[q.id] || '').trim()
@@ -1099,48 +1103,48 @@ async function generatePDF() {
         currentY += 8;
 
         const _tableBody = [];
-        const _obsRowIndices = new Set(); // track observation row indices
         _clauseOrderFailed.forEach(clauseTitle => {
             const items = _clauseGroups[clauseTitle];
-            // Count total rows: 1 per item + 1 extra for each item that has an observation
-            const totalRows = items.reduce((sum, item) => sum + 1 + (item.observation ? 1 : 0), 0);
+            const clauseCellBase = { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0, 150, 173] };
+            const clauseCellBlank = { valign: 'top', halign: 'center' };
             let isFirstRow = true;
-            items.forEach((item, i) => {
-                const row = [];
-                if (isFirstRow) {
-                    row.push({ content: clauseTitle, rowSpan: totalRows, styles: { valign: 'middle', halign: 'center', fontStyle: 'bold' } });
-                    isFirstRow = false;
-                }
-                row.push(`${i + 1}. ${item.text}`);
-                row.push(item.evidence || '');
-                _tableBody.push(row);
-                // Extra row for the observation: label in Hallazgo col, text in Plan de acción col
-                if (item.observation) {
-                _obsRowIndices.add(_tableBody.length);
+            items.forEach((item) => {
+                // Main question row – always 3 explicit cells (no rowSpan/colSpan)
                 _tableBody.push([
-                    { 
-                        content: '\u21b3 Observaci\u00f3n:',
-                        styles: {
-                            fontStyle: 'bolditalic',
-                            textColor: [90, 60, 0],
-                            fillColor: [255, 251, 225],
-                            halign: 'center',
-                            valign: 'middle',
-                            cellPadding: 3
-                        }
-                    },
-                    { 
-                        content: item.observation,
-                        styles: {
-                            fontStyle: 'italic',
-                            textColor: [90, 60, 0],
-                            fillColor: [255, 251, 225],
-                            overflow: 'linebreak',
-                            cellPadding: 3
-                        }
-                    }
+                    isFirstRow
+                        ? { content: clauseTitle, styles: clauseCellBase }
+                        : { content: '', styles: clauseCellBlank },
+                    `${item.originalIndex}. ${item.text}`,
+                    item.evidence || ''
                 ]);
-            }
+                isFirstRow = false;
+                // Observation row – always 3 explicit cells
+                if (item.observation) {
+                    _tableBody.push([
+                        { content: '', styles: clauseCellBlank },
+                        {
+                            content: '\u21b3 Observaci\u00f3n:',
+                            styles: {
+                                fontStyle: 'bolditalic',
+                                textColor: [90, 60, 0],
+                                fillColor: [255, 251, 225],
+                                halign: 'center',
+                                valign: 'middle',
+                                cellPadding: 3
+                            }
+                        },
+                        {
+                            content: item.observation,
+                            styles: {
+                                fontStyle: 'italic',
+                                textColor: [90, 60, 0],
+                                fillColor: [255, 251, 225],
+                                overflow: 'linebreak',
+                                cellPadding: 3
+                            }
+                        }
+                    ]);
+                }
             });
         });
 
@@ -1157,13 +1161,6 @@ async function generatePDF() {
                 0: { cellWidth: 30, halign: 'center' },
                 1: { cellWidth: 75 },
                 2: { cellWidth: 75 }
-            },
-            didDrawCell: data => {
-                if (data.section === 'body' && _obsRowIndices.has(data.row.index) && data.column.index === 0) {
-                    const cell = data.cell;
-                    doc.setFillColor(255, 251, 225);
-                    doc.rect(cell.x + cell.width - 0.5, cell.y + 0.2, 1, cell.height - 0.4, 'F');
-                }
             }
         });
     } else {
